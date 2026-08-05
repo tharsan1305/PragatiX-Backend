@@ -144,6 +144,13 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(ex.getMessage());
     }
 
+    @ExceptionHandler(com.pragatix.modules.student.exception.StudentNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiResponse<Void> handleStudentNotFound(com.pragatix.modules.student.exception.StudentNotFoundException ex) {
+        log.warn("Student profile not found: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage());
+    }
+
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiResponse<Void> handleNoHandlerFound(NoHandlerFoundException ex) {

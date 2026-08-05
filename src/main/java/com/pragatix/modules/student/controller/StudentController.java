@@ -157,6 +157,16 @@ public class StudentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     @Operation(summary = "Get Discipline Logs", description = "Fetch history logs of points adjustments for a student.")
     public ResponseEntity<ApiResponse<List<DisciplineLog>>> getDisciplineLogs(@PathVariable Long id) {
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isStudent = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT") || a.getAuthority().equals("STUDENT"));
+        if (isStudent) {
+            com.pragatix.entity.Student loggedIn = studentAuthResolver.getLoggedInStudent();
+            if (!loggedIn.getId().equals(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Access denied. You can only view your own discipline logs."));
+            }
+        }
         return ResponseEntity.ok(studentService.getDisciplineLogs(id));
     }
 
