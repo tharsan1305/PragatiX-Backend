@@ -11,8 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.pragatix.BaseIntegrationTest;
+
 @SpringBootTest
-public class DebugDataTest {
+public class DebugDataTest extends BaseIntegrationTest {
 
     @Autowired
     private ActivityRepository activityRepository;
