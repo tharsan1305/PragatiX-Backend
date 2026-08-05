@@ -1,0 +1,53 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+
+spring:
+  application:
+    name: pragatix-backend
+  main:
+    banner-mode: "off"
+    log-startup-info: false
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/spdms_lab?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: stharsan1305
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    user:
+      name: admin
+      password: admin
+
+jwt:
+  secret: spdms_super_secret_key_must_be_at_least_256_bits_long_for_hs256_algorithm
+  expiration: 86400000
+  student-expiration: 43200000
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+
+logging:
+  level:
+    root: WARN
+    com.pragatix: INFO
+    org.springframework: WARN
+    org.springframework.security: ERROR
+    org.hibernate: WARN
+    org.hibernate.SQL: ERROR
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
+    com.zaxxer.hikari: WARN

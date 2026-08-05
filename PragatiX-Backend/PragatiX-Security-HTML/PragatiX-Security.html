@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PragatiX Migration Security Audit</title>
+<style>
+:root{--critical:#c0392b;--critical-bg:#fadbd8;--high:#e67e22;--high-bg:#fdebd0;--medium:#f1c40f;--medium-bg:#fef9e7;--low:#2980b9;--low-bg:#d6eaf8;--bg:#f8f9fa;--card-bg:#fff;--text:#2c3e50;--muted:#7f8c8d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{font-size:2em;margin-bottom:4px}
+h2{font-size:1.5em;margin:32px 0 12px;border-bottom:2px solid #ddd;padding-bottom:6px}
+h3{font-size:1.2em;margin:24px 0 8px}
+h4{font-size:1em;margin:16px 0 6px}
+.subtitle{color:var(--muted);font-size:0.95em;margin-bottom:24px}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.summary-card{background:var(--card-bg);border-radius:8px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);text-align:center}
+.summary-card .num{font-size:2.4em;font-weight:700}
+.summary-card .label{font-size:0.85em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;color:#fff}
+.badge-critical{background:var(--critical)}.badge-high{background:var(--high)}.badge-medium{background:var(--medium);color:#333}.badge-low{background:var(--low)}.badge-clean{background:#27ae60}
+table{width:100%;border-collapse:collapse;background:var(--card-bg);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eee;font-size:0.92em;vertical-align:top}
+th{background:#f1f3f5;font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+code{background:#f4f4f4;padding:1px 5px;border-radius:3px;font-size:0.9em;word-break:break-all}
+pre{background:#f4f4f4;padding:12px;border-radius:6px;overflow-x:auto;font-size:0.88em;margin:8px 0}
+pre code{background:none;padding:0}
+.toc{background:var(--card-bg);border-radius:8px;padding:16px 24px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
+.toc a{color:var(--low);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.toc li{margin:4px 0}
+.file-section{margin-bottom:48px;padding:20px 24px;background:var(--card-bg);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.file-section h2{margin-top:0;border-bottom:3px solid #ddd}
+.finding-row td:first-child{white-space:nowrap;width:90px}
+.finding-row td:nth-child(2){width:180px;font-family:monospace;font-size:0.88em}
+.priority{background:var(--critical-bg);border-left:4px solid var(--critical);padding:12px 16px;margin:8px 0;border-radius:0 6px 6px 0}
+.priority ol{padding-left:20px}
+.priority li{margin:6px 0}
+.health-score{font-size:3em;font-weight:700;color:var(--critical)}
+.health-label{font-size:0.9em;color:var(--muted)}
+.extras{background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:16px 20px;margin:24px 0}
+.extras h3{margin-top:0;color:#856404}
+@media print{body{font-size:11px}.container{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>PragatiX &mdash; Migration Security &amp; Schema Audit</h1>
+<p class="subtitle"><strong>Scope:</strong> <code>N:\pragatiX\PragatiX-Backend\migration\</code> &mdash; V1 through V19 (19 files)<br>
+<strong>Platform declared:</strong> MySQL 8.0+ &nbsp;|&nbsp; <strong>Actual runtime:</strong> Hibernate <code>ddl-auto: update</code> (no Flyway configured)<br>
+<strong>Audit date:</strong> 2026-08-05</p>
+
+<h2>Summary</h2>
+<div class="summary-grid">
+<div class="summary-card"><div class="num">45</div><div class="label">Tables Scanned</div></div>
+<div class="summary-card"><div class="num" style="color:var(--critical)">10</div><div class="label">CRITICAL</div></div>
+<div class="summary-card"><div class="num" style="color:var(--high)">9</div><div class="label">HIGH</div></div>
+<div class="summary-card"><div class="num" style="color:var(--medium)">22</div><div class="label">MEDIUM</div></div>
+<div class="summary-card"><div class="num" style="color:var(--low)">17</div><div class="label">LOW</div></div>
+<div class="summary-card"><div class="num">58</div><div class="label">Total Findings</div></div>
+<div class="summary-card"><div class="health-score">12</div><div class="health-label">Health Score / 100<br><small>Formula: 100 &minus; (4&times;CRITICAL + 2&times;HIGH + 1&times;MEDIUM + 0.5&times;LOW), floored at 0</small></div></div>
+</div>
+
+<div class="extras">
+<h3>Beyond the migrations &mdash; application config findings</h3>
+<table>
+<tr><th>Severity</th><th>File</th><th>Issue</th><th>Why it matters</th><th>Fix</th></tr>
+<tr><td><span class="badge badge-critical">CRITICAL</span></td><td><code>application.yml</code></td><td>MySQL root password <code>sharu</code> committed in source control</td><td>Full DB credentials exposed in every repo clone / CI log</td><td>Remove; inject via <code>$&#123;DB_PASSWORD&#125;</code> env var; rotate the password</td></tr>
+<tr><td><span class="badge badge-critical">CRITICAL</span></td><td><code>application.yml</code></td><td>Spring Security default user <code>admin</code>/<code>admin</code></td><td>Well-known default credential on every environment</td><td>Remove; provision real admin via secure bootstrap</td></tr>
+<tr><td><span class="badge badge-critical">CRITICAL</span></td><td><code>application.yml</code></td><td>Hardcoded JWT secret <code>spdms_super_secret_key&hellip;</code></td><td>Static, publicly-known signing key &rarr; anyone can forge JWTs and impersonate any user</td><td>Move to <code>JWT_SECRET</code> env var; rotate immediately</td></tr>
+<tr><td><span class="badge badge-critical">CRITICAL</span></td><td><code>application.properties</code></td><td>Twilio account SID + auth token committed in plaintext</td><td>SMS gateway compromise &rarr; spam abuse, billing damage</td><td>Revoke token in Twilio console; move to secrets manager</td></tr>
+<tr><td><span class="badge badge-critical">CRITICAL</span></td><td><code>application.yml</code></td><td><code>ddl-auto: update</code> and <strong>no Flyway/Liquibase dependency</strong> in <code>pom.xml</code></td><td>The <code>migration/</code> folder is never executed by the app; schema is whatever Hibernate last created</td><td>Add Flyway dependency, configure <code>spring.flyway.*</code>, set <code>ddl-auto: validate</code></td></tr>
+<tr><td><span class="badge badge-high">HIGH</span></td><td>migrations &harr; entities</td><td>JPA entities require columns/tables the migrations never create (<code>activity_name</code>, <code>section_id</code>, <code>user_id</code>, <code>gender_id</code>, <code>year_id</code>, <code>semester_id</code>, <code>attendance_settings</code>, <code>activity_assignments</code>)</td><td>App and schema are out of sync; a migration-only build produces an unusable schema</td><td>Make the migration set authoritative and reconcile entities to it</td></tr>
+</table>
+</div>
+
+<h2>Table of Contents</h2>
+<div class="toc">
+<ol>
+<li><a href="#v1">V1__init.sql</a> &mdash; Initial schema (37 tables, UUID PKs, triggers)</li>
+<li><a href="#v2">V2__production_upgrade.sql</a> &mdash; UUID&rarr;BIGINT conversion, new tables, admin seed</li>
+<li><a href="#v3">V3</a> &mdash; Make student section nullable</li>
+<li><a href="#v4">V4</a> &mdash; Make student user nullable</li>
+<li><a href="#v5">V5</a> &mdash; Set student password NOT NULL</li>
+<li><a href="#v6">V6</a> &mdash; Add activity stage fields</li>
+<li><a href="#v7">V7</a> &mdash; Default activities XP category</li>
+<li><a href="#v8">V8</a> &mdash; Add activity event fields</li>
+<li><a href="#v9">V9</a> &mdash; Update activity rules fields</li>
+<li><a href="#v10">V10</a> &mdash; Award rules refactor</li>
+<li><a href="#v11">V11</a> &mdash; Add assignment mode</li>
+<li><a href="#v12">V12</a> &mdash; Fix activities subgroup column</li>
+<li><a href="#v13">V13</a> &mdash; Fix activity unique constraint</li>
+<li><a href="#v14">V14</a> &mdash; Remove assigned academic year</li>
+<li><a href="#v15">V15</a> &mdash; Drop legacy subgroup column</li>
+<li><a href="#v16">V16</a> &mdash; Create activity stage mapping table</li>
+<li><a href="#v17">V17</a> &mdash; Add stage ID and overrides</li>
+<li><a href="#v18">V18</a> &mdash; Update attendance settings dates</li>
+<li><a href="#v19">V19</a> &mdash; Drop attendance dates</li>
+</ol>
+</div>
+<div class="file-section" id="v1">
+<h2>V1__init.sql</h2>
+<p><strong>Purpose:</strong> Initial schema &mdash; 37 tables using UUID <code>BINARY(16)</code> PKs: 10 lookup tables, RBAC, profiles, stages, categories, rules/conditions, groups/members, submissions/evidence, violations/evidence, XP ledger, streaks, notifications, student stage progress, materialized XP summary, audit logs, login history &mdash; plus 3 triggers.</p>
+<p><strong>Tables created:</strong> user_statuses, frequencies, cap_periods, evidence_types, notification_types, submission_statuses, violation_statuses, violation_severities, xp_source_types, departments, users, roles, permissions, user_roles, role_permissions, student_profiles, faculty_profiles, student_parents, stages, categories, rules, rule_conditions, student_groups, group_members, submissions, submission_evidence, violation_types, violations, violation_evidence, xp_transactions, streaks, notifications, student_stage_progress, student_xp_summary, audit_logs, login_history, triggers trg_xp_after_insert/update/delete.</p>
+<table>
+<tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>departments.hod_user_id</code></td><td>FK <code>CONSTRAINT fk_departments_hod_user_id FOREIGN KEY (hod_user_id) REFERENCES users(id)</code> is declared inside <code>CREATE TABLE departments</code>, which runs <strong>before</strong> <code>users</code> is created (line 153 vs 158). MySQL 8.0 raises <strong>ERROR 1824</strong> "Failed to open the referenced table 'users'" at CREATE time. The file's own comment (lines 142&ndash;143) says the FK should be added after users exists, but the DDL keeps it inline &mdash; comment and code contradict.</td><td>V1 aborts on a clean MySQL 8.0 instance; the entire schema (and migration history) can never be built from scratch.</td><td><pre>ALTER TABLE departments ADD CONSTRAINT fk_departments_hod_user_id FOREIGN KEY (hod_user_id) REFERENCES users(id) ON DELETE SET NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>categories, roles, permissions</code></td><td>These lookup tables have <code>created_at</code> but no <code>updated_at</code>.</td><td>No way to detect when a lookup definition was last changed; audit gap for reference data.</td><td><pre>ALTER TABLE categories ADD COLUMN updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6); -- repeat for roles, permissions</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>rule_conditions</code></td><td>No audit timestamps at all.</td><td>Cannot tell when a condition was added or changed.</td><td><pre>ALTER TABLE rule_conditions ADD COLUMN created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>login_history.user_agent, stages.description, categories.description</code></td><td><code>TEXT</code> where <code>VARCHAR(500)</code> would suffice. TEXT can't be indexed without a prefix and adds overhead.</td><td>Larger storage overhead, cannot index/compare efficiently for short values.</td><td><pre>ALTER TABLE login_history MODIFY user_agent VARCHAR(500) NULL; ALTER TABLE stages MODIFY description VARCHAR(500) NULL; ALTER TABLE categories MODIFY description VARCHAR(500) NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>users.phone, student_profiles.guardian_phone, guardian_email</code></td><td>PII stored in plaintext at rest.</td><td>Breach exposes phone numbers / guardian contact details; GDPR-style liability.</td><td><pre>No DB-level encryption in MySQL; mitigate at application layer (encrypt before persist, restrict column grants, pseudonymize in reports).</pre></td></tr>
+</table>
+<h4>V1 Table Checks</h4>
+<p>&#9989; All 37 tables have a PK. &#9989; Every reference column has a FK (except the ordering bug above). &#9989; All FK columns indexed. &#9989; All lookup codes UNIQUE. &#9989; <code>users.email</code> unique + indexed. &#9989; All tables use <code>utf8mb4 / utf8mb4_unicode_ci</code>. &#9989; Consistent <code>snake_case</code> naming. &#9989; No DROP COLUMN/TABLE &mdash; safe migrations.</p>
+</div>
+<div class="file-section" id="v2">
+<h2>V2__production_upgrade.sql</h2>
+<p><strong>Purpose:</strong> Enterprise upgrade &mdash; converts UUID&rarr;BIGINT AUTO_INCREMENT, renames <code>stages</code>&rarr;<code>activity_stages</code> and <code>student_groups</code>&rarr;<code>groups</code>, drops all V1 FKs and triggers, creates 10 new production tables, migrates users/students data, seeds admin + roles, re-creates a subset of FKs + indexes + triggers.</p>
+<p><strong>Tables created:</strong> subjects, students, student_guardians, activity_subgroups, activities, discipline_logs, attendance, marks, system_settings, user_sub_roles. <strong>Tables dropped:</strong> student_profiles, faculty_profiles, student_parents. <strong>Tables renamed:</strong> stages&rarr;activity_stages, student_groups&rarr;groups.</p>
+<table>
+<tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>(entire migration)</code></td><td>Uses <strong>MariaDB-only syntax</strong> <code>DROP FOREIGN KEY IF EXISTS</code> (lines 26&ndash;86) and <code>DROP COLUMN IF EXISTS</code> (lines 187&ndash;188, 835&ndash;859). Standard MySQL 8.0 does <strong>not</strong> support <code>IF EXISTS</code>/<code>IF NOT EXISTS</code> on these ALTER clauses &rarr; <strong>syntax error (1064) at line 26</strong>. Confirmed by Apache DevLake issue #8744 and Netflix Conductor issue #1264.</td><td>The migration never runs on the declared platform (header says "MySQL 8.0+"). V2 is the core of the schema &mdash; nothing after it can execute.</td><td><pre>SET @s = (SELECT IF(COUNT(*)&gt;0, 'ALTER TABLE departments DROP FOREIGN KEY fk_departments_hod_user_id', 'SELECT 1') FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='departments' AND CONSTRAINT_NAME='fk_departments_hod_user_id'); PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>users.section, users.year (lines 360&ndash;361)</code></td><td><code>ALTER TABLE users MODIFY section VARCHAR(50) DEFAULT NULL;</code> and <code>MODIFY year VARCHAR(10) DEFAULT NULL;</code> &mdash; the <code>users</code> table has <strong>no</strong> <code>section</code> or <code>year</code> column (V1 users has none; V2 adds only <code>username</code>, <code>full_name</code>, <code>active</code>, <code>temp_dept_id</code>). &rarr; <strong>ERROR 1054 Unknown column</strong> &rarr; migration aborts.</td><td>Schema cannot be built; the upgrade halts mid-flight after data changes have already been made.</td><td><pre>Delete both statements (section/year belong to <code>students</code>, not <code>users</code>).</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>audit_logs.entity_name (line 730)</code></td><td><code>ALTER TABLE audit_logs MODIFY entity_name VARCHAR(100) NOT NULL;</code> &mdash; V1 <code>audit_logs</code> has <code>entity_type</code>, not <code>entity_name</code>. &rarr; <strong>ERROR 1054</strong>.</td><td>Migration aborts.</td><td><pre>ALTER TABLE audit_logs MODIFY entity_type VARCHAR(100) NOT NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>users / user_roles (lines 768&ndash;776)</code></td><td><strong>Hardcoded default admin credential</strong>: <code>INSERT INTO users (1,'admin', '$2a$10$&hellip;', &hellip;)</code> with the BCrypt hash of <code>12345</code> (documented in a comment), auto-assigned <code>ROLE_ADMIN</code>. <code>ON DUPLICATE KEY UPDATE &hellip; password = VALUES(password)</code> <strong>resets the admin password to the known value</strong> if the statement ever re-executes (cloned env, restore).</td><td>Publicly-known default password = instant full-admin compromise on any deployed instance; the reset clause can silently overwrite a password an admin already changed.</td><td><pre>Remove the seed entirely. Bootstrap admins via env-provided BCrypt hash + forced password change; never commit known passwords to source control.</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>50+ FK constraints</code></td><td>V2 drops <strong>all ~50 V1 FK constraints</strong> (lines 26&ndash;86) but only re-creates <strong>15</strong> (users, user_roles, groups, students, activity_subgroups, activities, discipline_logs, attendance, marks, audit_logs, login_history). Tables left with <strong>no foreign keys</strong>: role_permissions, rules, rule_conditions, group_members, submissions, submission_evidence, violation_types, violations, violation_evidence, xp_transactions, streaks, notifications, student_stage_progress, student_xp_summary, departments(hod_user_id).</td><td>The DB no longer enforces any relationship in the XP domain &rarr; orphaned submissions/violations/XP rows, lost cascades, silent data corruption.</td><td><pre>Re-add all dropped FKs. See SUMMARY.md for the complete list of ~35 missing FK constraints.</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>users.username</code></td><td>Added <code>VARCHAR(100) NULL</code> (line 330), made <code>NOT NULL</code> (line 348) &mdash; but <strong>no UNIQUE constraint and no dedicated index</strong>. The old <code>idx_users_email_status</code> was auto-dropped when <code>status_id</code> was dropped. Duplicate usernames possible (email-prefix collision: <code>a@x.com</code> and <code>a@y.com</code> both become <code>'a'</code>); every login lookup by username is a full table scan.</td><td>Duplicate logins possible; login lookups unscalable.</td><td><pre>ALTER TABLE users ADD UNIQUE KEY uk_users_username (username);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>triggers trg_xp_after_* (lines 906&ndash;909 etc.)</code></td><td>New triggers compute the stage as <code>SELECT s.id FROM activity_stages s ORDER BY s.id DESC LIMIT 1</code> &mdash; always the <strong>highest stage id</strong>, ignoring <code>min_xp</code>/<code>max_xp</code> and <code>total_xp</code> (V1 used a threshold query).</td><td>Stage progression logic silently broken &mdash; ranking/promotion data corrupt.</td><td><pre>Restore threshold logic: SELECT s.id INTO new_stage FROM activity_stages s WHERE cur_total &gt;= s.min_xp AND (s.max_xp IS NULL OR cur_total &lt;= s.max_xp) ORDER BY s.min_xp DESC LIMIT 1;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>roles (lines 761&ndash;766)</code></td><td>V1 roles (STUDENT, FACULTY, HOD, ADMIN, PLACEMENT_OFFICER, PARENT) become ids <strong>1&ndash;6</strong> after BIGINT conversion. V2 then <code>INSERT</code> ids 1&ndash;4 with <code>ON DUPLICATE KEY UPDATE name</code> &rarr; <strong>silently renames</strong>: STUDENT&rarr;ROLE_ADMIN, FACULTY&rarr;ROLE_TEACHER, HOD&rarr;ROLE_STUDENT, ADMIN&rarr;ROLE_TRANSPORT.</td><td>Role ids/names are scrambled; <code>user_roles</code> now point at wrong role semantics &rarr; authorization misconfig, misleading audit.</td><td><pre>Don't reuse ids. Upsert by name: INSERT INTO roles (name) VALUES ('ROLE_ADMIN'),('ROLE_TEACHER'),('ROLE_STUDENT'),('ROLE_TRANSPORT') ON DUPLICATE KEY UPDATE id=id;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>student_parents (lines 862&ndash;864)</code></td><td><code>DROP TABLE student_profiles, faculty_profiles, student_parents;</code> &mdash; the student&harr;parent links in <code>student_parents</code> are deleted with <strong>no migration target</strong>.</td><td>Permanent loss of guardian/relationship data; no backup.</td><td><pre>CREATE TABLE user_relationships LIKE student_parents; INSERT INTO user_relationships SELECT * FROM student_parents; -- only then DROP</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activities.xp, activities.cap, activities.frequency</code></td><td>Numbers stored as <code>VARCHAR(100)</code> strings ('50', '1'). V9 then has to <code>CAST()</code> them back, proving the design flaw.</td><td>Numeric ops require CAST, no range validation, wrong sort/aggregate, junk text accepted.</td><td><pre>ALTER TABLE activities MODIFY xp INT NULL, MODIFY cap INT NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activities.created_at (line 270)</code></td><td><code>DATETIME(6) NOT NULL</code> with <strong>no DEFAULT</strong>; <code>updated_at DATETIME(6) DEFAULT NULL</code>.</td><td>Any insert omitting <code>created_at</code> fails; no auto-maintenance of timestamps.</td><td><pre>ALTER TABLE activities MODIFY created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>users.password, students.password</code></td><td><code>password_hash</code> was <strong>renamed to <code>password</code></strong> (line 351); new <code>students.password</code> uses the same name. Column name gives no indication the value is hashed.</td><td>Invites plaintext storage; auditors cannot tell intent. (Seed does use a BCrypt hash &mdash; good &mdash; but the naming is a regression.)</td><td><pre>ALTER TABLE users CHANGE password password_hash VARCHAR(255) NOT NULL; ALTER TABLE students CHANGE password password_hash VARCHAR(255) NOT NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>audit_logs.old_value, audit_logs.new_value</code></td><td>Converted from <code>JSON</code> to <code>TEXT</code> (lines 731&ndash;732). Loses JSON validation.</td><td>Any malformed string accepted into an audit log.</td><td><pre>ALTER TABLE audit_logs MODIFY old_value JSON NULL, MODIFY new_value JSON NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>notifications</code></td><td>All FKs dropped and never re-created; new <code>recipient_id</code> is polymorphic (<code>recipient_type</code> + <code>recipient_id</code>), so no FK is possible.</td><td>Orphan notifications; no referential integrity on recipient.</td><td><pre>ALTER TABLE notifications ADD COLUMN user_id BIGINT NULL; ALTER TABLE notifications ADD CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>departments.hod_user_id</code></td><td>Left as <code>BINARY(16)</code> (only id/name/code converted); FK dropped at line 26, never re-added. Value type no longer matches <code>users.id</code> (now BIGINT).</td><td>Dangling legacy column; values can never join to users.</td><td><pre>ALTER TABLE departments MODIFY hod_user_id BIGINT NULL; ALTER TABLE departments ADD CONSTRAINT fk_departments_hod_user_id FOREIGN KEY (hod_user_id) REFERENCES users(id) ON DELETE SET NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>discipline_logs.recorded_by_id (line 751)</code></td><td>Backfill hardcodes <code>recorded_by_id = 1</code> ("Fallback to system admin user (id = 1)").</td><td>XP history attributed to the wrong person if id 1 isn't the admin; breaks if seed order changes.</td><td><pre>Resolve dynamically: (SELECT id FROM users WHERE username='admin' LIMIT 1)</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>triggers trg_xp_after_*</code></td><td>Hardcoded source-type ids <code>v_sub_id BIGINT DEFAULT 1</code>, <code>v_vio_id BIGINT DEFAULT 2</code>. Only correct by seed-order accident.</td><td>Any change to <code>xp_source_types</code> insert order silently mis-totals XP.</td><td><pre>SET v_sub_id = (SELECT id FROM xp_source_types WHERE code='SUBMISSION' LIMIT 1); SET v_vio_id = (SELECT id FROM xp_source_types WHERE code='VIOLATION' LIMIT 1);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>students.student_id</code></td><td>This column is the <strong>register/roll number</strong> (<code>VARCHAR(100) UNIQUE</code>), while <code>student_id</code> in <code>submissions</code>/<code>violations</code>/<code>xp_transactions</code> means <em>the student's users.id</em>. Same column name, two meanings.</td><td>Join bugs, wrong-index usage, severe confusion.</td><td><pre>ALTER TABLE students CHANGE student_id reg_no VARCHAR(100) NOT NULL; ALTER TABLE students ADD UNIQUE KEY uk_students_reg_no (reg_no);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>students.spr_no</code></td><td><code>VARCHAR(100) DEFAULT NULL</code> with no UNIQUE and no index.</td><td>Duplicate SPR numbers possible; SPR lookups are full scans.</td><td><pre>ALTER TABLE students ADD UNIQUE KEY uk_students_spr_no (spr_no);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>attendance</code></td><td>No UNIQUE on <code>(student_id, date)</code>. Duplicate attendance rows for the same student/day.</td><td>Wrong attendance percentages.</td><td><pre>ALTER TABLE attendance ADD UNIQUE KEY uk_attendance_student_date (student_id, date);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>marks</code></td><td>No UNIQUE on <code>(student_id, subject_id, exam_type)</code>. Duplicate exam scores double-counted.</td><td>Aggregate math is wrong.</td><td><pre>ALTER TABLE marks ADD UNIQUE KEY uk_marks_student_subject_exam (student_id, subject_id, exam_type);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>students.year, students.semester, students.gender, students.academic_year</code></td><td>Textual <code>VARCHAR</code> codes ('1', '2', 'Sem 1') instead of lookups/ENUM/int. The JPA entity later uses lookup ids (<code>year_id</code>, <code>semester_id</code>, <code>gender_id</code>) &rarr; drift.</td><td>No referential/range validation; free-text drift.</td><td><pre>Convert to FK lookups or ENUM: ALTER TABLE students MODIFY year INT NULL; / add year_id BIGINT + FK</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>departments.code (line 164)</code></td><td><code>MODIFY code VARCHAR(50) NOT NULL</code> &mdash; data-dependent: any existing row with <code>NULL</code> code &rarr; ALTER fails.</td><td>Migration is non-idempotent on real production data.</td><td><pre>Backfill first: UPDATE departments SET code = CONCAT('DEPT-', id) WHERE code IS NULL;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activities</code></td><td>No index on <code>name</code>, <code>category</code>, <code>xp_category</code>. Activity search/listing by name or category scans the whole table.</td><td>Full table scans on a growing table.</td><td><pre>CREATE INDEX idx_activities_name ON activities (name); CREATE INDEX idx_activities_category ON activities (category);</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>user_statuses</code></td><td>Becomes orphaned once <code>users.status_id</code> is dropped; table kept but unused.</td><td>Dead schema; confusing.</td><td><pre>Drop after confirming nothing references it: DROP TABLE IF EXISTS user_statuses;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>system_settings, attendance, marks, discipline_logs</code></td><td>Have <code>created_at</code> but no <code>updated_at</code>.</td><td>No way to know when a record last changed.</td><td><pre>ALTER TABLE attendance ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP; -- repeat per table</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>students.group_id + group_members</code></td><td>Membership modeled twice: denormalized <code>students.group_id</code> AND the <code>group_members</code> join table. Two sources of truth that can diverge.</td><td>Data inconsistency risk.</td><td><pre>Consolidate on one model (keep the join table, drop <code>students.group_id</code> or vice-versa).</pre></td></tr>
+</table>
+</div>
+<div class="file-section" id="v3">
+<h2>V3__make_student_section_nullable.sql</h2>
+<p><strong>Purpose:</strong> Makes <code>section_id</code> nullable on the <code>students</code> table.</p>
+<p><strong>Tables / columns altered:</strong> <code>students.section_id</code> (intended).</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>students.section_id</code></td><td>The migration targets <code>students.section_id</code>, but <strong>no migration in this set creates that column</strong>. V2 created <code>students.section</code> as <code>VARCHAR(50)</code> &mdash; not <code>section_id</code> (which exists only in the JPA entity via Hibernate <code>ddl-auto: update</code>). On a schema built from these migrations the ALTER fails with <strong>ERROR 1054 Unknown column 'section_id'</strong>.</td><td>Migration set is not self-contained; on a Flyway-managed DB this aborts.</td><td><pre>ALTER TABLE students ADD COLUMN section_id BIGINT NULL; ALTER TABLE students MODIFY COLUMN section_id bigint NULL;</pre></td></tr>
+</table></div>
+<div class="file-section" id="v4">
+<h2>V4__make_student_user_nullable.sql</h2>
+<p><strong>Purpose:</strong> Makes <code>user_id</code> nullable on the <code>students</code> table.</p>
+<p><strong>Tables / columns altered:</strong> <code>students.user_id</code> (intended).</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>students.user_id</code></td><td>The migration targets <code>students.user_id</code>, but <strong>no migration in this set creates that column</strong> (V2's <code>students</code> has no <code>user_id</code>; it exists only in the JPA <code>Student</code> entity via Hibernate <code>ddl-auto: update</code>). On a schema built from these migrations the ALTER fails with <strong>ERROR 1054 Unknown column 'user_id'</strong>.</td><td>Migration set is not self-contained; aborts on a migration-managed DB.</td><td><pre>ALTER TABLE students ADD COLUMN user_id BIGINT NULL; ALTER TABLE students MODIFY COLUMN user_id bigint NULL; ALTER TABLE students ADD CONSTRAINT fk_students_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;</pre></td></tr>
+</table></div>
+<div class="file-section" id="v5">
+<h2>V5__set_student_password_not_null.sql</h2>
+<p><strong>Purpose:</strong> Enforces that <code>students.password</code> is never NULL.</p>
+<p><strong>Tables / columns altered:</strong> <code>students.password</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>students.password</code></td><td><code>MODIFY COLUMN password varchar(255) NOT NULL</code> is <strong>data-dependent</strong>: V2 created <code>students.password</code> as <code>VARCHAR(255) DEFAULT NULL</code>, populated only for rows migrated from <code>users</code>. Any <code>students</code> row with a NULL password (e.g. rows created directly, or students whose <code>users</code> row was missing) &rarr; the ALTER fails (error 1265 in strict mode). Also retains the ambiguous <code>password</code> (vs <code>password_hash</code>) naming.</td><td>Migration aborts on real data; column name invites plaintext storage.</td><td><pre>UPDATE students SET password = '' WHERE password IS NULL; ALTER TABLE students MODIFY COLUMN password varchar(255) NOT NULL; ALTER TABLE students CHANGE password password_hash varchar(255) NOT NULL;</pre></td></tr>
+</table></div>
+<div class="file-section" id="v6">
+<h2>V6__add_activity_stage_fields.sql</h2>
+<p><strong>Purpose:</strong> Adds scheduling/display fields to <code>activity_stages</code>: <code>start_date</code>, <code>end_date</code>, <code>display_order</code>, <code>is_active</code>; then initialises defaults for stage id 1.</p>
+<p><strong>Tables / columns altered:</strong> <code>activity_stages.start_date</code>, <code>activity_stages.end_date</code>, <code>activity_stages.display_order</code>, <code>activity_stages.is_active</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activity_stages (lines 8&ndash;13)</code></td><td>Defaults are applied with a hardcoded <code>WHERE id = 1</code> and hardcoded dates <code>'2026-01-01'</code>/<code>'2026-01-31'</code>. If stage id 1 is not the first/desired stage, no defaults are applied; the dates are stale.</td><td>Stage configuration silently inconsistent across environments.</td><td><pre>UPDATE activity_stages SET display_order = id, is_active = 1 WHERE display_order = 0;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>activity_stages.is_active</code></td><td>Declared <code>TINYINT(1)</code> while the rest of the schema uses <code>BOOLEAN</code> for booleans.</td><td>Inconsistent typing &mdash; the ORM maps them differently.</td><td><pre>ALTER TABLE activity_stages MODIFY is_active BOOLEAN NOT NULL DEFAULT TRUE;</pre></td></tr>
+</table></div>
+<div class="file-section" id="v7">
+<h2>V7__default_activities_xp_category.sql</h2>
+<p><strong>Purpose:</strong> Backfills NULL <code>xp_category</code> values in <code>activities</code> to <code>'Academic'</code> for backward compatibility.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.xp_category</code> (data only).</p>
+<p><strong>No issues found.</strong> This is a non-destructive, targeted data backfill. It does not alter schema, drop data, or weaken constraints. <code>xp_category</code> exists on <code>activities</code> (created in V2). &#9989;</p>
+</div>
+<div class="file-section" id="v8">
+<h2>V8__add_activity_event_fields.sql</h2>
+<p><strong>Purpose:</strong> Adds event-management fields to <code>activities</code>: <code>maximum_awards</code>, <code>display_order</code>, <code>status</code>.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.maximum_awards</code>, <code>activities.display_order</code>, <code>activities.status</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>activities.status</code></td><td><code>VARCHAR(50) DEFAULT 'ACTIVE'</code> with no CHECK constraint.</td><td>Free text allows typos/invalid states ('active', 'disabled', '') &rarr; engine logic that compares to 'ACTIVE' silently breaks.</td><td><pre>ALTER TABLE activities MODIFY status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE'; ALTER TABLE activities ADD CONSTRAINT chk_activities_status CHECK (status IN ('ACTIVE','INACTIVE','ARCHIVED'));</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>activities.maximum_awards, activities.display_order</code></td><td>Added as nullable <code>INT</code> with defaults but no <code>NOT NULL</code>.</td><td>Optional nulls complicate <code>COALESCE</code> logic at read time.</td><td><pre>ALTER TABLE activities MODIFY maximum_awards INT NOT NULL DEFAULT 1, MODIFY display_order INT NOT NULL DEFAULT 0;</pre></td></tr>
+</table></div>
+<div class="file-section" id="v9">
+<h2>V9__update_activity_rules_fields.sql</h2>
+<p><strong>Purpose:</strong> Adds award-rule fields to <code>activities</code> (<code>award_xp</code>, <code>award_type</code>, <code>repeat_allowed</code>, <code>reset_period</code>) and migrates existing values from <code>xp</code> and <code>frequency</code>.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.award_xp</code>, <code>activities.award_type</code>, <code>activities.repeat_allowed</code>, <code>activities.reset_period</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activities.award_xp (line 8)</code></td><td><code>UPDATE activities SET award_xp = CAST(COALESCE(xp,'0') AS SIGNED);</code> &mdash; if <code>xp</code> contains any non-numeric text (e.g. <code>'50 XP'</code>, <code>'high'</code>, <code>'100+'</code>), MySQL <code>CAST(... AS SIGNED)</code> <strong>silently returns 0</strong> (with only a warning). Real XP values are quietly zeroed and the originals stay in the now-redundant <code>xp</code> column.</td><td>Silent data corruption that is unrecoverable after the migration commits; award values wrong, students under/over-rewarded.</td><td><pre>-- Audit before casting SELECT id, xp FROM activities WHERE xp IS NOT NULL AND xp NOT REGEXP '^[0-9]+$'; -- Migrate only clean numeric values UPDATE activities SET award_xp = xp WHERE xp REGEXP '^[0-9]+$'; UPDATE activities SET award_xp = 0 WHERE award_xp IS NULL; -- After the legacy column is no longer needed: ALTER TABLE activities DROP COLUMN xp;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>activities.award_type, activities.reset_period</code></td><td>Free-text <code>VARCHAR(50)</code> with no CHECK/ENUM.</td><td>Unvalidated domain values drift; logic switches on strings.</td><td><pre>ALTER TABLE activities ADD CONSTRAINT chk_activities_award_type CHECK (award_type IN ('Fixed XP','Per Point','Penalty')); ALTER TABLE activities ADD CONSTRAINT chk_activities_reset_period CHECK (reset_period IN ('Once','Daily','Weekly','Monthly'));</pre></td></tr>
+</table></div>
+<div class="file-section" id="v10">
+<h2>V10__award_rules_refactor.sql</h2>
+<p><strong>Purpose:</strong> Adds <code>award_frequency</code> and <code>award_days</code> to <code>activities</code>, migrates <code>reset_period</code> &rarr; <code>award_frequency</code>, enforces <code>maximum_awards = 1</code> for one-time/manual activities, and adds an index on <code>award_frequency</code>.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.award_frequency</code>, <code>activities.award_days</code>, index <code>idx_activities_award_frequency</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activities.award_frequency, activities.award_days</code></td><td>Free-text <code>VARCHAR</code> with no CHECK constraint, and <code>award_days</code> is a <strong>comma-separated CSV string</strong> ('Monday,Wednesday,Friday').</td><td>Invalid frequency values slip in; CSV weekdays can't be queried/indexed/validated cleanly and mix spelling.</td><td><pre>ALTER TABLE activities ADD CONSTRAINT chk_activities_award_frequency CHECK (award_frequency IN ('One Time','Daily','Weekly','Monthly','Manual'));</pre></td></tr>
+</table></div>
+<div class="file-section" id="v11">
+<h2>V11__add_assignment_mode.sql</h2>
+<p><strong>Purpose:</strong> Adds <code>assignment_mode</code> to <code>activities</code> to support three modes: MANUAL (default), GLOBAL, CLASS_COORDINATOR.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.assignment_mode</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>activities.assignment_mode</code></td><td><code>VARCHAR(50)</code> with no CHECK constraint &mdash; free text allows any value (e.g. 'manual', 'MANUAL', 'global', typos).</td><td>Application logic that switches on exact string match silently breaks on typos or case variants.</td><td><pre>ALTER TABLE activities ADD CONSTRAINT chk_activities_assignment_mode CHECK (assignment_mode IN ('MANUAL','GLOBAL','CLASS_COORDINATOR'));</pre></td></tr>
+</table></div>
+<div class="file-section" id="v12">
+<h2>V12__fix_activities_subgroup_column.sql</h2>
+<p><strong>Purpose:</strong> Safely makes the legacy <code>subgroup</code> column on <code>activities</code> nullable if it exists, using a dynamic <code>INFORMATION_SCHEMA</code> guard.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.subgroup</code> (conditional &mdash; only if the column exists).</p>
+<p><strong>No issues found.</strong> The migration is safe: uses <code>INFORMATION_SCHEMA.COLUMNS</code> to check existence before altering &mdash; idempotent. Only modifies the column to NULL; does not drop data. Does not affect any other table. &#9989;</p>
+</div>
+<div class="file-section" id="v13">
+<h2>V13__fix_activity_unique_constraint.sql</h2>
+<p><strong>Purpose:</strong> Replaces the old <code>uq_activity</code> unique constraint (on <code>category_id</code>, <code>activity_name</code>) with <code>uq_activity_subgroup</code> (on <code>subgroup_id</code>, <code>activity_name</code>) using dynamic <code>INFORMATION_SCHEMA</code> guards.</p>
+<p><strong>Tables / columns altered:</strong> <code>activities</code> &mdash; drops index <code>uq_activity</code>, adds unique constraint <code>uq_activity_subgroup (subgroup_id, activity_name)</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>activities.activity_name, activities.category_id</code></td><td>The migration references columns that <strong>do not exist</strong> in the migration-built schema. V2 created <code>activities</code> with <code>name</code> (not <code>activity_name</code>) and has <strong>no <code>category_id</code> column</strong> at all (V2 activities has <code>category VARCHAR(50)</code>, not <code>category_id</code>). The <code>ALTER TABLE activities DROP INDEX uq_activity</code> and <code>ADD CONSTRAINT uq_activity_subgroup UNIQUE (subgroup_id, activity_name)</code> both fail with <strong>ERROR 1054 Unknown column</strong> on a migration-built schema.</td><td>Migration aborts on a Flyway-managed DB. The constraint only "works" because Hibernate created <code>activity_name</code> from the JPA entity &mdash; but that's the schema drift problem.</td><td><pre>ALTER TABLE activities ADD CONSTRAINT uq_activity_subgroup UNIQUE (subgroup_id, name);</pre></td></tr>
+</table></div>
+<div class="file-section" id="v14">
+<h2>V14__remove_assigned_academic_year.sql</h2>
+<p><strong>Purpose:</strong> Consolidates <code>assigned_academic_year</code> into <code>academic_year</code> on the <code>users</code> table (if it exists) and drops any legacy <code>assigned_academic_year</code> columns from <code>users</code> and <code>activities</code>.</p>
+<p><strong>Tables / columns altered:</strong> <code>users.academic_year</code> (added if absent), <code>users.assigned_academic_year</code> (dropped if both exist), <code>activities.assigned_academic_year</code> (dropped if present).</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>users.academic_year</code></td><td>Adds a denormalized <code>academic_year VARCHAR(50)</code> column to <code>users</code>. Academic year is a student-level attribute, not a user-level one. Storing it on <code>users</code> duplicates state and can drift out of sync with the student's actual year.</td><td>Data integrity risk &mdash; a user's academic year can diverge from the student record.</td><td><pre>Keep <code>academic_year</code> on <code>students</code> only; do not add it to <code>users</code>.</pre></td></tr>
+</table></div>
+<div class="file-section" id="v15">
+<h2>V15__drop_legacy_subgroup_column.sql</h2>
+<p><strong>Purpose:</strong> Safely drops the legacy <code>subgroup</code> VARCHAR column from <code>activities</code> if present, using a two-step dynamic guard (first NULL it, then drop it).</p>
+<p><strong>Tables / columns altered:</strong> <code>activities.subgroup</code> &mdash; dropped (conditional).</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activities.subgroup</code></td><td><code>DROP COLUMN subgroup</code> permanently deletes any data still present in that column. The migration guards against the column not existing, but does <strong>not</strong> back up the data before dropping.</td><td>If any legacy data was still in <code>subgroup</code> (e.g. a text label that wasn't migrated to <code>subgroup_id</code>), it is gone forever with no recovery path.</td><td><pre>CREATE TABLE IF NOT EXISTS backup_activities_subgroup AS SELECT id, subgroup FROM activities; -- then proceed with the two-step drop (as written)</pre></td></tr>
+</table></div>
+<div class="file-section" id="v16">
+<h2>V16__create_activity_stage_mapping_table.sql</h2>
+<p><strong>Purpose:</strong> Creates <code>activity_stage_mappings</code> (a reusable mapping table linking activities to stages via subgroups) and backfills it from existing <code>activities</code> + <code>activity_subgroups</code> data.</p>
+<p><strong>Tables / objects created:</strong> <code>activity_stage_mappings</code> &mdash; columns: <code>id</code> (BIGINT PK AUTO_INCREMENT), <code>activity_id</code>, <code>stage_id</code>, <code>subgroup_id</code>, <code>display_order</code>, <code>created_at</code>. Unique key <code>uq_stage_activity (stage_id, activity_id)</code>. FKs to <code>activities</code>, <code>activity_stages</code>, <code>activity_subgroups</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>activity_stage_mappings.stage_id FK</code></td><td><code>CONSTRAINT fk_asm_stage FOREIGN KEY (stage_id) REFERENCES stages(id)</code> &mdash; the table <code>stages</code> was <strong>renamed to <code>activity_stages</code></strong> in V2. MySQL 8.0 raises <strong>ERROR 1824 "Failed to open the referenced table 'stages'"</strong> at CREATE TABLE time.</td><td>The entire migration aborts; <code>activity_stage_mappings</code> is never created.</td><td><pre>Change the FK reference: CONSTRAINT fk_asm_stage FOREIGN KEY (stage_id) REFERENCES activity_stages(id) ON DELETE CASCADE</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>activity_stage_mappings</code></td><td>Has <code>created_at</code> but no <code>updated_at</code> audit column.</td><td>Cannot detect when a mapping was last modified.</td><td><pre>ALTER TABLE activity_stage_mappings ADD COLUMN updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);</pre></td></tr>
+</table></div>
+<div class="file-section" id="v17">
+<h2>V17__add_stage_id_and_overrides.sql</h2>
+<p><strong>Purpose:</strong> Adds <code>stage_id</code> to <code>activity_assignments</code> (with FK) and override columns (<code>award_xp</code>, <code>award_enabled</code>, <code>penalty_enabled</code>, <code>penalty_xp</code>, <code>award_frequency</code>) to <code>activity_stage_mappings</code>.</p>
+<p><strong>Tables / columns altered:</strong> <code>activity_assignments.stage_id</code> (conditional), <code>activity_stage_mappings.award_xp</code>, <code>award_enabled</code>, <code>penalty_enabled</code>, <code>penalty_xp</code>, <code>award_frequency</code>.</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>activity_assignments (table)</code></td><td>The migration targets <code>activity_assignments</code>, which <strong>no migration in this set creates</strong> (only the JPA entity defines it, created by Hibernate <code>ddl-auto: update</code>). On a migration-managed DB &rarr; <strong>ERROR 1146 Table 'activity_assignments' doesn't exist</strong>.</td><td>Migration aborts.</td><td><pre>Create <code>activity_assignments</code> in a migration first, or ensure Hibernate runs before this migration (fragile).</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>activity_assignments.stage_id FK</code></td><td><code>CONSTRAINT fk_aa_stage FOREIGN KEY (stage_id) REFERENCES stages(id)</code> &mdash; <code>stages</code> doesn't exist (renamed to <code>activity_stages</code> in V2) &rarr; <strong>ERROR 1824</strong>.</td><td>FK creation fails; migration aborts.</td><td><pre>Change reference: REFERENCES activity_stages(id) ON DELETE CASCADE.</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-critical">CRITICAL</span></td><td><code>activity_stage_mappings (lines 34&ndash;38)</code></td><td>Uses <code>ALTER TABLE ... ADD COLUMN IF NOT EXISTS</code> &mdash; <strong>MariaDB-only syntax</strong>; fails on standard MySQL 8.0 with <strong>syntax error (1064)</strong>.</td><td>Migration aborts on MySQL 8.0.</td><td><pre>Replace each with an INFORMATION_SCHEMA-guarded PREPARE statement (see V17 markdown doc for full pattern).</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>activity_stage_mappings.award_frequency</code></td><td><code>VARCHAR(50) NULL</code> with no CHECK constraint.</td><td>Free-text allows any value; domain values should be restricted.</td><td><pre>ALTER TABLE activity_stage_mappings ADD CONSTRAINT chk_asm_award_frequency CHECK (award_frequency IN ('One Time','Daily','Weekly','Monthly'));</pre></td></tr>
+</table></div>
+<div class="file-section" id="v18">
+<h2>V18__update_attendance_settings_dates.sql</h2>
+<p><strong>Purpose:</strong> Adds <code>start_date</code> and <code>end_date</code> columns to <code>attendance_settings</code>, then drops the legacy <code>week_start_day</code> and <code>week_end_day</code> columns.</p>
+<p><strong>Tables / columns altered:</strong> <code>attendance_settings.start_date</code>, <code>attendance_settings.end_date</code>, <code>attendance_settings.week_start_day</code> (dropped), <code>attendance_settings.week_end_day</code> (dropped).</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>attendance_settings (table)</code></td><td>The table <code>attendance_settings</code> is <strong>not created by any migration in this set</strong> &mdash; it exists only because Hibernate <code>ddl-auto: update</code> creates it from the <code>AttendanceSettings</code> JPA entity. On a Flyway-managed DB &rarr; <strong>ERROR 1146 Table 'attendance_settings' doesn't exist</strong>.</td><td>Migration aborts; the migration set is not authoritative for this table.</td><td><pre>Add a CREATE TABLE attendance_settings (...) migration first, or ensure Hibernate runs before Flyway (fragile).</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>attendance_settings.week_start_day, week_end_day</code></td><td><code>DROP COLUMN</code> permanently removes weekly scheduling configuration with <strong>no backup</strong>.</td><td>If any row had non-NULL values in these columns, the weekly engine configuration is lost forever.</td><td><pre>CREATE TABLE IF NOT EXISTS backup_attendance_settings_week_config AS SELECT id, week_start_day, week_end_day FROM attendance_settings; -- then proceed with the DROP</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>V18 + V19 combined</code></td><td>V18 adds <code>start_date</code>/<code>end_date</code> only for V19 to immediately drop them &mdash; <strong>net-zero schema change</strong>. Also no CHECK constraint on <code>end_date &gt;= start_date</code>.</td><td>Pointless DDL churn; no value added.</td><td><pre>Remove both V18 and V19 entirely if the columns are not needed, or keep them if actually needed.</pre></td></tr>
+</table></div>
+<div class="file-section" id="v19">
+<h2>V19__drop_attendance_dates.sql</h2>
+<p><strong>Purpose:</strong> Drops <code>start_date</code> and <code>end_date</code> from <code>attendance_settings</code> (reversing V18).</p>
+<p><strong>Tables / columns altered:</strong> <code>attendance_settings.start_date</code> (dropped), <code>attendance_settings.end_date</code> (dropped).</p>
+<table><tr><th>Severity</th><th>Table/Column</th><th>Issue</th><th>Why it matters</th><th>Recommended fix (SQL)</th></tr>
+<tr class="finding-row"><td><span class="badge badge-high">HIGH</span></td><td><code>attendance_settings (table)</code></td><td>The table <code>attendance_settings</code> is <strong>not created by any migration in this set</strong> &mdash; it exists only because Hibernate <code>ddl-auto: update</code> creates it. On a Flyway-managed DB the ALTER fails with <strong>ERROR 1146 Table 'attendance_settings' doesn't exist</strong>.</td><td>Migration aborts.</td><td><pre>Same as V18 &mdash; create the table in a migration first, or wire Hibernate to run before Flyway (fragile).</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-medium">MEDIUM</span></td><td><code>attendance_settings.start_date, end_date</code></td><td><code>DROP COLUMN</code> permanently removes data. If any application code or report wrote values to these columns between V18 and V19, that data is lost.</td><td>Data loss of the date range configuration.</td><td><pre>CREATE TABLE IF NOT EXISTS backup_attendance_settings_dates AS SELECT id, start_date, end_date FROM attendance_settings; ALTER TABLE attendance_settings DROP COLUMN start_date, DROP COLUMN end_date;</pre></td></tr>
+<tr class="finding-row"><td><span class="badge badge-low">LOW</span></td><td><code>V18 + V19 net effect</code></td><td>V18 adds <code>start_date</code>/<code>end_date</code>; V19 drops them immediately. <strong>Zero net schema change.</strong></td><td>Unnecessary churn in migration history; adds no value.</td><td><pre>Remove both V18 and V19 entirely if the columns are not needed.</pre></td></tr>
+</table></div>
+<h2>Priority Action List</h2>
+<div class="priority"><ol>
+<li><strong>Fix V1 departments FK ordering</strong> &mdash; move <code>fk_departments_hod_user_id</code> to after <code>users</code> is created. <em>Without this, V1 fails on a clean MySQL 8.0.</em></li>
+<li><strong>Replace MariaDB-only <code>IF EXISTS</code> ALTER syntax in V2 and V17</strong> with <code>INFORMATION_SCHEMA</code>-guarded <code>PREPARE</code> statements. <em>Without this, V2 and V17 fail on MySQL 8.0.</em></li>
+<li><strong>Delete the broken ALTERs in V2</strong> on columns that do not exist: <code>users.section</code>, <code>users.year</code>, <code>audit_logs.entity_name</code>.</li>
+<li><strong>Remove the hardcoded admin credential</strong> (<code>admin</code>/<code>12345</code>) and the <code>ON DUPLICATE KEY UPDATE &hellip; password = VALUES(password)</code> reset clause from V2.</li>
+<li><strong>Fix V16/V17 FK references to <code>stages</code></strong> &rarr; <code>activity_stages(id)</code>; create <code>activity_assignments</code> and <code>attendance_settings</code> tables in migrations instead of relying on Hibernate.</li>
+<li><strong>Fix V13 unique constraint</strong> to use real columns <code>(subgroup_id, name)</code> &mdash; <code>activity_name</code> does not exist in the migration-built <code>activities</code> table.</li>
+<li><strong>Re-create the ~35 dropped FK constraints</strong> on XP-domain tables after V2 conversion (see V2 finding #5 for the full list).</li>
+<li><strong>Add UNIQUE + index on <code>users.username</code></strong> (login identifier).</li>
+<li><strong>Restore threshold-based stage promotion</strong> in V2 triggers (currently <code>ORDER BY id DESC LIMIT 1</code> puts every student at the top stage).</li>
+<li><strong>Fix V2 role seed collision</strong> &mdash; V2 reuses ids 1&ndash;4 which V1 already assigned to STUDENT/FACULTY/HOD/ADMIN, silently renaming them.</li>
+<li><strong>Preserve <code>student_parents</code> data</strong> before <code>DROP TABLE</code> in V2 (guardian links are permanently lost).</li>
+<li><strong>Align V3/V4/V5 with reality</strong> &mdash; target the actual columns, backfill NULL passwords before making them <code>NOT NULL</code>.</li>
+<li><strong>Remove/rotate all committed secrets</strong> (DB password, JWT secret, Twilio credentials, <code>admin/admin</code>) and replace Hibernate <code>ddl-auto: update</code> with a real migration tool (no Flyway is currently configured!).</li>
+<li><strong>MEDIUM cleanup batch:</strong> numbers stored as strings in <code>activities.xp/cap/frequency</code>; unique keys on <code>attendance(student_id,date)</code> and <code>marks(student_id,subject_id,exam_type)</code>; rename <code>password</code>&rarr;<code>password_hash</code>; backfill <code>departments.code</code> before <code>NOT NULL</code>; index <code>activities.name/category</code>; keep <code>audit_logs.old_value/new_value</code> as JSON; convert <code>departments.hod_user_id</code> to BIGINT; add <code>updated_at</code> to lookup tables.</li>
+</ol></div>
+<p style="text-align:center; color:var(--muted); margin-top:48px; font-size:0.85em;">
+End of report &mdash; generated from migration files V1&ndash;V19 in <code>N:\pragatiX\PragatiX-Backend\migration\</code>
+</p></div></body></html>
