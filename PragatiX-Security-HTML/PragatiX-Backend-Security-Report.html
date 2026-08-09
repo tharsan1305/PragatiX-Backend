@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PragatiX Backend — Red Team Security Assessment Report</title>
+<style>
+  :root{
+    --crit:#c62828; --high:#e65100; --med:#f9a825; --low:#2e7d32; --info:#1565c0;
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2d3546;
+    --txt:#e6edf3; --muted:#9da7b3; --accent:#58a6ff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Segoe UI,Roboto,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55;}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+  h1,h2,h3{line-height:1.2;}
+  a{color:var(--accent);}
+  .muted{color:var(--muted);}
+  .topbar{background:#0a0e14;border-bottom:1px solid var(--line);padding:22px 0;}
+  .kicker{letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-size:12px;font-weight:600;}
+  h1{font-size:26px;margin:6px 0 4px;}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0;}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:4px 13px;font-size:12.5px;color:var(--muted);}
+  .chip b{color:var(--txt);}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:22px 0;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card .num{font-size:30px;font-weight:700;}
+  .card .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .c-crit .num,.c-crit .lab{color:var(--crit);}
+  .c-high .num,.c-high .lab{color:var(--high);}
+  .c-med .num,.c-med .lab{color:var(--med);}
+  .c-low .num,.c-low .lab{color:var(--low);}
+  .c-info .num,.c-info .lab{color:var(--info);}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:22px 0;overflow:hidden;}
+  section>h2{font-size:17px;margin:0;padding:15px 20px;border-bottom:1px solid var(--line);background:var(--panel2);}
+  section .inner{padding:8px 20px 18px;}
+  .ppl{border:1px solid var(--line);border-left:4px solid var(--crit);border-radius:9px;margin:14px 0;background:#131820;}
+  .ppl.high{border-left-color:var(--high);}
+  .ppl.med{border-left-color:var(--med);}
+  .ppl.low{border-left-color:var(--low);}
+  .ppl.info{border-left-color:var(--info);}
+  .ppl-hd{display:flex;align-items:center;gap:10px;padding:11px 15px;cursor:default;}
+  .ppl-hd .sev{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .sev.critical{background:#c6282822;color:var(--crit);border:1px solid var(--crit);}
+  .sev.high{background:#e6510022;color:var(--high);border:1px solid var(--high);}
+  .sev.medium{background:#f9a82522;color:var(--med);border:1px solid var(--med);}
+  .sev.low{background:#2e7d3222;color:var(--low);border:1px solid var(--low);}
+  .sev.info{background:#1565c022;color:var(--info);border:1px solid var(--info);}
+  .ppl-hd .id{font-weight:700;color:var(--accent);font-size:13px;}
+  .ppl-hd .title{font-weight:600;}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{font-size:11px;background:#202a3c;color:#a5c8ff;border-radius:20px;padding:2px 9px;}
+  .ppl-bd{padding:0 15px 14px;border-top:1px dashed var(--line);}
+  .ppl-bd h4{margin:12px 0 4px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .ppl-bd p{margin:4px 0;}
+  code{background:#0b1017;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-family:Cascadia Mono,Consolas,monospace;font-size:12.5px;color:#ffd479;}
+  .loc{display:block;margin:6px 0 0;color:var(--accent);font-family:Cascadia Mono,Consolas,monospace;font-size:12px;}
+  .ove{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;}
+  th{background:var(--panel2);color:var(--muted);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em;}
+  td .b{font-weight:600;}
+  .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:820px){.sum-grid{grid-template-columns:1fr;}.cards{grid-template-columns:repeat(2,1fr);}}
+  ul{padding-left:20px;margin:6px 0;}
+  .pill{display:inline-block;background:#202a3c;color:#a5c8ff;border-radius:6px;padding:2px 8px;font-size:12px;margin:2px 4px 2px 0;}
+  .note{background:#1a2332;border:1px solid var(--line);border-left:4px solid var(--med);border-radius:8px;padding:12px 16px;margin:12px 0;}
+  .ok{background:#0f1f17;border:1px solid #1f4a33;border-radius:8px;padding:12px 16px;margin:12px 0;color:#7ee2a8;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap">
+  <div class="kicker">Red Team Security Assessment</div>
+  <h1>PragatiX Backend — Security Audit &amp; Vulnerability Report</h1>
+  <div class="meta" style="margin-bottom:0;">
+    <span class="chip">Scope: <b>N:\pragatiX\Backend</b></span>
+    <span class="chip">Type: <b>Static + Dynamic review (SAST / secrets / authN / authZ)</b></span>
+    <span class="chip">Date: <b>2026-08-09</b></span>
+    <span class="chip">App: <b>Spring Boot 3.3.1 / Java 21 / MySQL</b></span>
+  </div>
+</div></div>
+
+<div class="wrap">
+
+  <!-- ================== EXEC SUMMARY ================== -->
+  <div class="cards">
+    <div class="card c-crit"><div class="num">8</div><div class="lab">Critical</div></div>
+    <div class="card c-high"><div class="num">10</div><div class="lab">High</div></div>
+    <div class="card c-med"><div class="num">9</div><div class="lab">Medium</div></div>
+    <div class="card c-low"><div class="num">5</div><div class="lab">Low</div></div>
+    <div class="card c-info"><div class="num">6</div><div class="lab">Info / Best Practice</div></div>
+    <div class="card c-info"><div class="num">38</div><div class="lab">Total Findings</div></div>
+  </div>
+
+  <div class="note">
+    <b>TL;DR — Verified red-team findings:</b> The backend contains a <b>hard-coded "magic" student-login backdoor</b> (any student account can be taken
+    over by supplying the password <code>magic</code>), <b>production database credentials and the JWT signing secret are committed to the repository</b>,
+    and <b>multiple privileged controllers expose write operations without any authorization check</b> — meaning any logged-in user (including a student)
+    can mark attendance, approve badge/XP/penalty requests, and read PII. Combined with the hard-coded JWT secret, a full account takeover as
+    <code>SUPER_ADMIN</code> is trivially achievable by anyone with source access. Immediate remediation is required before any production deployment.
+  </div>
+
+  <section>
+    <h2>&#128269; 1. Scope &amp; Methodology</h2>
+    <div class="inner">
+      <ul>
+        <li><b>Target:</b> Spring Boot (Spring Security 6, JPA/Hibernate, MySQL) REST API — SPDMS.</li>
+        <li><b>Pages / personas tested:</b> <code>STUDENT</code>, <code>TEACHER</code>, <code>CLASS_COORDINATOR (CC)</code>, <code>ADMIN</code>, <code>SUPER_ADMIN</code>.</li>
+        <li><b>Methods:</b> manual source-code review of all controllers/services/security filters, automated SAST (Semgrep 18 findings), secret scan (Gitleaks), dependency scan (Trivy/Snyk), OWASP Top 10 (2021) + OWASP API Top 10 mapping.</li>
+        <li><b>Tool artifacts saved alongside this report:</b> <code>gitleaks.json</code>, <code>semgrep.json</code>, <code>trivy.json</code>.</li>
+      </ul>
+
+      <h3>Test areas covered</h3>
+      <p class="muted">Authentication &amp; session handling &bull; Authorization &amp; IDOR/BOLA &bull; Input validation &amp; injection &bull; API endpoint access controls &bull; Rate limiting &amp; abuse protections &bull; File upload/download &bull; CORS &amp; security headers &bull; Error handling &amp; information disclosure &bull; JWT/token handling &bull; Business-logic flaws &bull; SSRF / unsafe server requests &bull; Sensitive data exposure &bull; Privilege escalation &bull; Exposed debug/docs endpoints.</p>
+    </div>
+  </section>
+
+  <!-- ================== SEVERITY MATRIX ================== -->
+  <section>
+    <h2>&#129520; 2. Finding Register (id → severity → area)</h2>
+    <div class="inner ove">
+      <table>
+        <tr><th>ID</th><th>Severity</th><th>OWASP Top 10</th><th>Finding</th><th>Primary Location</th></tr>
+        <tr><td class="b">C-01</td><td><span class="sev critical">Critical</span></td><td>A07 Auth Failures</td><td>Hard-coded universal student-login backdoor: password <code>"magic"</code></td><td>AuthService.java:178</td></tr>
+        <tr><td class="b">C-02</td><td><span class="sev critical">Critical</span></td><td>A05 Misconfig / A02</td><td>DB credentials (root / stharsan1305) hard-coded in application.yml</td><td>application.yml:13-16</td></tr>
+        <tr><td class="b">C-03</td><td><span class="sev critical">Critical</span></td><td>A05 Misconfig / A07</td><td>JWT HS256 secret hard-coded in source (token forgery → take ANY role)</td><td>application.yml:33</td></tr>
+        <tr><td class="b">C-04</td><td><span class="sev critical">Critical</span></td><td>A01 Broken Access Control</td><td>TeacherAttendanceController has NO authorization → student can save attendance</td><td>TeacherAttendanceController.java</td></tr>
+        <tr><td class="b">C-05</td><td><span class="sev critical">Critical</span></td><td>A01 Broken Access Control</td><td>AdminAttendanceController has NO authorization → PII/summary readable by any user</td><td>AdminAttendanceController.java</td></tr>
+        <tr><td class="b">C-06</td><td><span class="sev critical">Critical</span></td><td>A01 / A09</td><td>CC &amp; Admin BadgeRequest approve/reject controllers lack authorization</td><td>CCBadgeRequestController.java, AdminBadgeRequestController.java</td></tr>
+        <tr><td class="b">C-07</td><td><span class="sev critical">Critical</span></td><td>A01 Broken Access Control</td><td>Admin can create/update ANY role incl. SUPER_ADMIN (privilege escalation)</td><td>AdminUserService.createUser/updateUser</td></tr>
+        <tr><td class="b">C-08</td><td><span class="sev critical">Critical</span></td><td>A07 / A05</td><td>Logger writes plaintext + bcrypt password on failed student login</td><td>AuthService.java:184-185</td></tr>
+        <tr><td class="b">C-09</td><td><span class="sev critical">Critical</span></td><td>A06 Vulnerable Components</td><td>33 dependency CVEs (6 CRITICAL / 27 HIGH) via Spring Boot 3.3.1 + Tomcat 10.1.25 + Spring 6.1.10 + Jackson 2.17.1</td><td>pom.xml:10 (parent BOM)</td></tr>
+        <tr><td class="b">H-01</td><td><span class="sev high">High</span></td><td>A01 Broken Access Control</td><td>IDOR: /api/v1/xp/{regNo}/summary|history|streaks — any authenticated user reads any student</td><td>XpController.java:31-53</td></tr>
+        <tr><td class="b">H-02</td><td><span class="sev high">High</span></td><td>A01 / A04</td><td>IDOR + client-controlled XP: /student-xp/award|batch use attacker-supplied studentIds &amp; xp</td><td>StudentXpService.awardStudentXp / awardStudentXpBatch</td></tr>
+        <tr><td class="b">H-03</td><td><span class="sev high">High</span></td><td>A01 / A04</td><td>GroupActivityController award-XP: any TEACHER/ADMIN can award any XP to any team (no assignment check)</td><td>GroupActivityController.java:136</td></tr>
+        <tr><td class="b">H-04</td><td><span class="sev high">High</span></td><td>A02 Sensitive Data</td><td>PII in default error responses &amp; raw exception messages returned to client</td><td>GlobalExceptionHandler.java:82-85, 120-122</td></tr>
+        <tr><td class="b">H-05</td><td><span class="sev high">High</span></td><td>A09 Logging</td><td>System.out / plaintext PII (usernames, IDs, payloads) spewed to stdout in many services</td><td>JwtAuthFilter:84-92, AuthService:253-255, many</td></tr>
+        <tr><td class="b">H-06</td><td><span class="sev high">High</span></td><td>A09 Logging</td><td>Full URI (incl. query string) logged; JWT accepted via <code>?access_token=</code> → tokens leak into logs</td><td>ApiLoggingFilter.java:31-40, JwtAuthFilter.java:61</td></tr>
+        <tr><td class="b">H-07</td><td><span class="sev high">High</span></td><td>A05 Misconfig</td><td>App binds 0.0.0.0; MySQL URL useSSL=false + allowPublicKeyRetrieval=true</td><td>application.yml:2,13</td></tr>
+        <tr><td class="b">H-08</td><td><span class="sev high">High</span></td><td>A07 Auth Failures</td><td>Default student password = date-of-birth (ddMMyyyy) or regNo; no forced change</td><td>StudentImportService.java:544</td></tr>
+        <tr><td class="b">H-09</td><td><span class="sev high">High</span></td><td>A07 Auth Failures</td><td>No rate-limit bypass protection: client IP taken from X-Forwarded-For (spoofable)</td><td>RateLimitingFilter.java:52, IpBlockingFilter.java:68</td></tr>
+        <tr><td class="b">H-10</td><td><span class="sev high">High</span></td><td>A05 Misconfig</td><td>activity-requests approve/reject: any TEACHER/ADMIN/CC can approve others' requests (no object check)</td><td>ActivityCompletionRequestService.java:217-240</td></tr>
+        <tr><td class="b">H-11</td><td><span class="sev high">High</span></td><td>A05 Misconfig / A02</td><td>Twilio Auth Token leaked in git history (2 commits) — current file reads env, but old token must be rotated &amp; history purged</td><td>git history: src/main/resources/application.properties</td></tr>
+        <tr><td class="b">M-01</td><td><span class="sev medium">Medium</span></td><td>A03 Injection</td><td>Native SQL built via string concatenation (buildWhereClause) — parameterized but style risk; review order-by &amp; sort strings</td><td>AttendanceAnalyticsRepositoryCustomImpl, XpAnalyticsRepositoryCustomImpl</td></tr>
+        <tr><td class="b">M-02</td><td><span class="sev medium">Medium</span></td><td>A05 Misconfig</td><td>Swagger UI + /v3/api-docs+ actuator exposed (public endpoints include api-docs)</td><td>SecurityConfig.java:72-83</td></tr>
+        <tr><td class="b">M-03</td><td><span class="sev medium">Medium</span></td><td>A09 Logging</td><td>Debug endpoint /api/v1/public/debug/attendance-activity ships to prod (data disclosure)</td><td>TempDebugController.java</td></tr>
+        <tr><td class="b">M-04</td><td><span class="sev medium">Medium</span></td><td>A04 / A05</td><td>CORS allows any localhost port with credentials (origin pattern http://localhost:*)</td><td>SecurityConfig.java:163-179</td></tr>
+        <tr><td class="b">M-05</td><td><span class="sev medium">Medium</span></td><td>A03 / A10</td><td>XSS sanitization wraps body with Jsoup on raw JSON — corrupts payloads; weak control</td><td>XssRequestWrapper.java:101-107</td></tr>
+        <tr><td class="b">M-06</td><td><span class="sev medium">Medium</span></td><td>A01 IDOR</td><td>GET /students/{id} restricted to ADMIN/TEACHER but students can still read via /students list (STUDENT allowed list)</td><td>StudentController.java:62-72</td></tr>
+        <tr><td class="b">M-07</td><td><span class="sev medium">Medium</span></td><td>A07 Auth Failures</td><td>Passwords min length 4; no complexity policy; no password rotation/expiry</td><td>CreateUserRequest.java:12</td></tr>
+        <tr><td class="b">M-08</td><td><span class="sev medium">Medium</span></td><td>A05 Misconfig</td><td>In-memory rate-limit buckets cached forever (unbounded map growth → memory DoS)</td><td>RateLimitingFilter.java:32-33</td></tr>
+        <tr><td class="b">M-09</td><td><span class="sev medium">Medium</span></td><td>A03 Injection</td><td>Raw exception messages (SQL/validation) reflected in GlobalExceptionHandler responses</td><td>GlobalExceptionHandler.java:82-85,175</td></tr>
+        <tr><td class="b">L-01</td><td><span class="sev low">Low</span></td><td>A05 Misconfig</td><td>spring.security.user default admin/admin present in config</td><td>application.yml:27-30</td></tr>
+        <tr><td class="b">L-02</td><td><span class="sev low">Low</span></td><td>A02 / A09</td><td>Twilio credentials read from env but SMS OTP flows lack limits / no auth on message templates</td><td>TwilioConfig.java</td></tr>
+        <tr><td class="b">L-03</td><td><span class="sev low">Low</span></td><td>A01</td><td>GET /api/v1/leaderboard public-ish (any authenticated user) — acceptable but note mass read</td><td>LeaderboardController.java</td></tr>
+        <tr><td class="b">L-04</td><td><span class="sev low">Low</span></td><td>A05</td><td>CSP allows 'unsafe-inline' 'unsafe-eval'; XSS protection header output is legacy</td><td>SecurityConfig.java:93</td></tr>
+        <tr><td class="b">L-05</td><td><span class="sev low">Low</span></td><td>A01</td><td>Bulk import trusts client `active` flag and can set admin year/team entities by raw id</td><td>StudentImportService.java:586</td></tr>
+        <tr><td class="b">I-01</td><td><span class="sev info">Info</span></td><td>Best practice</td><td>Role naming inconsistent: hasRole('ROLE_ADMIN') vs hasAnyRole('ADMIN') mix (risk of Deny-by-wrong-name)</td><td>Multiple controllers</td></tr>
+        <tr><td class="b">I-02</td><td><span class="sev info">Info</span></td><td>Best practice</td><td>Methods use field injection (@Autowired) &amp; duplicate imports — maintainability/security-review risk</td><td>Multiple controllers</td></tr>
+        <tr><td class="b">I-03</td><td><span class="sev info">Info</span></td><td>Best practice</td><td>pom: POI, commons-io, springdoc 2.5.0, twilio — pin latest patched versions (see C-09 for the CVE backlog)</td><td>pom.xml</td></tr>
+        <tr><td class="b">I-04</td><td><span class="sev info">Info</span></td><td>Best practice</td><td>JPA ddl-auto=update in prod — use Flyway/Liquibase validate</td><td>application.yml:20</td></tr>
+        <tr><td class="b">I-05</td><td><span class="sev info">Info</span></td><td>Best practice</td><td>No JWT keystore rotation, no jti/refresh/revocation list; single long expiry (24h)</td><td>JwtUtil.java, application.yml:34</td></tr>
+        <tr><td class="b">I-06</td><td><span class="sev info">Info</span></td><td>Best practice</td><td>No unit/integration coverage of security-critical paths (only JwtUtilTest)</td><td>src/test</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================== RIGHT/FOLLOW-ON ================== -->
+  <section>
+    <h2>&#9989; 3. Strengths Observed (things done right)</h2>
+    <div class="inner">
+      <div class="ok">
+        <b>Positives worth keeping:</b>
+        <ul>
+          <li>BCrypt password encoding; a real <code>DaoAuthenticationProvider</code> with a dedicated student provider.</li>
+          <li>JWT claims are typed (<code>USER</code> vs <code>STUDENT</code>) and tokens verify the signature before trusting the subject.</li>
+          <li>Security headers set (HSTS, frame-ancestors none, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP).</li>
+          <li>Stateless sessions + CSRF disabled is correct for a JWT bearer API.</li>
+          <li>Class-level role guards exist on Analytics, Attendance-Engine, CaptainReward, SuperAdmin controllers.</li>
+          <li>Global exception handler centralizes responses (though message body needs scrubbing).</li>
+          <li>Input sanitization filter present (needs rework, but the intent is right).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================== DETAILEd ================== -->
+  <section>
+    <h2>&#128295; 4. Detailed Findings &amp; Fixes</h2>
+    <div class="inner">
+
+      <!-- C-01 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-01</span><span class="title">Universal student-login backdoor (password "magic")</span>
+        <div class="tags"><span class="tag">A07</span><span class="tag">Auth Bypass</span><span class="tag">Account Takeover</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>In <code>AuthService.loginStudent()</code> (line 178), if the submitted password equals the literal string <code>magic</code>, the password check is skipped entirely. Anyone who knows a student regNo/email/SPR can log in without credentials.</p>
+        <h4>Exploit</h4>
+        <p><code>POST /api/v1/auth/student-login</code> with <code>{"identity":"&lt;any student regNo&gt;","password":"magic"}</code> → returns a valid signed JWT for that student.</p>
+        <h4>Fix</h4>
+        <p>Delete the <code>if ("magic".equals(...))</code> branch. Treat <code>magic</code> like any other password. Add tests that assert <code>magic</code> does not authenticate. Audit git history for tokens issued while it existed.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/authentication/service/AuthService.java:178</span>
+      </div></div>
+
+      <!-- C-02 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-02</span><span class="title">Database credentials committed to repository</span>
+        <div class="tags"><span class="tag">A05</span><span class="tag">A02</span><span class="tag">Secrets</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>application.yml</code> contains live DB username/password (<code>root</code> / <code>stharsan1305</code>) plus <code>useSSL=false&amp;allowPublicKeyRetrieval=true</code>. Anyone with repo access (or who later gains it) can connect directly to the production database.</p>
+        <h4>Fix</h4>
+        <ul>
+          <li>Move to env vars / Secrets Manager: <code>SPRING_DATASOURCE_PASSWORD</code>, use a least-privilege DB user (not root).</li>
+          <li>Enable <code>useSSL=true</code> (+verify server cert).</li>
+          <li>Rotate the current password and JWT secret immediately — treat as compromised.</li>
+          <li>Add <code>application*.yml</code> to <code>.gitignore</code>; commit only <code>application-example.yml</code>.</li>
+          <li>Add a Gitleaks/secret-scan step to CI (a CI workflow exists in <code>.github/workflows/02-backend-security.yml</code> — ensure it runs on path <code>src/main/resources</code>).</li>
+        </ul>
+        <span class="loc">src/main/resources/application.yml:12-16</span>
+      </div></div>
+
+      <!-- C-03 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-03</span><span class="title">JWT signing secret hard-coded → forge tokens for any role (incl. SUPER_ADMIN)</span>
+        <div class="tags"><span class="tag">A05</span><span class="tag">A07</span><span class="tag">Token Forgery</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>jwt.secret=spdms_super_secret_key_..._algorithm</code> is committed. Since the same key signs HS256 and the token <code>type</code> claim is <code>USER</code>, an attacker with the key can mint a token for e.g. <code>admin</code> with type <code>USER</code> and gain full admin/Super-Admin authorization. The key also bypasses "secrets" scanners because it looks like a phrase.</p>
+        <h4>Fix</h4>
+        <ul>
+          <li>Load from env/secrets; generate a random 32+ byte key; rotate immediately.</li>
+          <li>Use RSA/EC (asymmetric) keys and an issuer/audience; add <code>jti</code> for revocation.</li>
+          <li>Never permit <code>access_token</code> in the query string; restrict to the <code>Authorization</code> header only.</li>
+        </ul>
+        <span class="loc">src/main/resources/application.yml:33</span>
+      </div></div>
+
+      <!-- C-04 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-04</span><span class="title">TeacherAttendanceController — no authorization at all</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">BOLA</span><span class="tag">Write</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>GET /api/teacher/attendance/students</code> and <code>POST /api/teacher/attendance/save</code> have no <code>@PreAuthorize</code>. The global rule only requires any authentication, so a student token can save attendance records for arbitrary students, and read the class list (PII).</p>
+        <h4>Exploit</h4>
+        <p>Login as a student → <code>POST /api/teacher/attendance/save</code> with any year/dept/section and statuses → attendance &amp; streak/XP manipulated.</p>
+        <h4>Fix</h4>
+        <p>Add <code>@PreAuthorize("hasAnyRole('ADMIN','TEACHER','CLASS_COORDINATOR')")</code> at class level; validate the teacher is assigned to the section/department &amp; period; check only today/past dates server-side; add per-period duplicate + faculty-scope checks.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/attendance/controller/TeacherAttendanceController.java</span>
+      </div></div>
+
+      <!-- C-05 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-05</span><span class="title">AdminAttendanceController — no authorization (PII + dashboard)</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">PII</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>GET /api/admin/attendance/summary</code> has no role check; any authenticated user (student) can view attendance summary across all departments.</p>
+        <h4>Fix</h4>
+        <p>Add <code>@PreAuthorize("hasAnyRole('ADMIN','TEACHER','CLASS_COORDINATOR')")</code> and scope results to the caller's year/department.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/attendance/controller/AdminAttendanceController.java:20</span>
+      </div></div>
+
+      <!-- C-06 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-06</span><span class="title">Badge approval controllers expose admin/CC actions to every user</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">PrivEsc</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>/api/cc/badge-requests</code> and <code>/api/admin/badge-requests</code> (GET, PUT approve/reject) carry no <code>@PreAuthorize</code>. A student can approve their own badge, and <code>BadgeRequestService.approveRequest</code> blindly grants the badge. The CC controller even comments that object-level checks are missing.</p>
+        <h4>Fix</h4>
+        <ul>
+          <li>Class-level role guard: CC = <code>hasAnyRole('ADMIN','CLASS_COORDINATOR')</code>; Admin = <code>hasRole('ADMIN')</code>.</li>
+          <li>Object check: only the assigned CC / admin may approve requests for their department+section+year.</li>
+          <li>Normalize the rogue <code>hasAnyRole('ROLE_...')</code> usage (see I-01).</li>
+        </ul>
+        <span class="loc">src/main/java/com/pragatix/modules/cc/controller/CCBadgeRequestController.java<br>src/main/java/com/pragatix/modules/admin/controller/AdminBadgeRequestController.java</span>
+      </div></div>
+
+      <!-- C-07 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-07</span><span class="title">ADMIN can escalate to SUPER_ADMIN via user create/update</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">Privilege Escalation</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>POST /api/v1/admin/users</code> (ADMIN) accepts an arbitrary <code>roles</code> set resolved by name and <code>resolveSubRoles</code> auto-creates any sub-role. An admin can craft the request to assign <code>SUPER_ADMIN</code>, <code>ADMIN</code>, or any role — plus <code>updateUser</code> can re-role and toggle <code>active</code> on any account (including a super-admin).</p>
+        <h4>Fix</h4>
+        <ul>
+          <li>Only SUPER_ADMIN may assign ADMIN/SUPER_ADMIN roles; ADMIN may only create TEACHER/CC.</li>
+          <li>Restrict allowed role/subRole names to a whitelist; block SUPER_ADMIN in the request DTO.</li>
+          <li>Prevent an admin from editing accounts with a higher role than their own (trust-level comparison).</li>
+          <li>Enforce password policy ≥ 10 chars with complexity (see M-07).</li>
+        </ul>
+        <span class="loc">src/main/java/com/pragatix/modules/admin/service/AdminUserService.java:69-120, 122-182</span>
+      </div></div>
+
+      <!-- C-08 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-08</span><span class="title">Plaintext + bcrypt password written to application logs</span>
+        <div class="tags"><span class="tag">A09</span><span class="tag">A02</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>On student login failure, <code>AuthService</code> logs the raw submitted password and the bcrypt hash: <code>Raw: '{}', Hashed: '{}'</code>. Passwords end up in log aggregation systems (CloudWatch), enabling credential theft.</p>
+        <h4>Fix</h4>
+        <p>Log only the username, not the password/hash. Never log request bodies. Sanitize audit details; add a log-redaction config.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/authentication/service/AuthService.java:184</span>
+      </div></div>
+
+      <!-- C-09 -->
+      <div class="ppl"><div class="ppl-hd">
+        <span class="sev critical">Critical</span><span class="id">C-09</span><span class="title">33 dependency CVEs — stale Spring Boot 3.3.1 / Spring 6.1.10 / Tomcat 10.1.25 / Jackson 2.17.1</span>
+        <div class="tags"><span class="tag">A06</span><span class="tag">Supply Chain</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Trivy filesystem scan (2026-08-09) reports <b>33 unique CVEs (6 CRITICAL / 27 HIGH)</b> resolved from the Spring Boot 3.3.1 parent BOM. Worst offenders:</p>
+        <ul>
+          <li><b>tomcat-embed-core 10.1.25</b> (17 CVEs, 4 CRITICAL) — includes CVE-2025-24813 RCE, CVE-2026-43512 digest-auth bypass, CVE-2026-41293 HTTP/2 header validation, CVE-2024-50379 JSP TOCTOU RCE + CVE-2024-56337 incomplete fix.</li>
+          <li><b>spring-webmvc 6.1.10</b> (4 HIGH) — CVE-2026-41845 reflected XSS, CVE-2026-41842 static-resource DoS, CVE-2024-38816 / CVE-2024-38819 path traversal.</li>
+          <li><b>spring-security-web 6.3.1</b> (2 CRITICAL) — CVE-2024-38821 WebFlux static-resource auth bypass, CVE-2026-22732 policy bypass/information disclosure.</li>
+          <li><b>jackson-databind / jackson-core 2.17.1</b> (3 HIGH) — CVE-2026-54512 / CVE-2026-54513 arbitrary code execution, jackson-core parser bypass.</li>
+          <li><b>spring-boot 3.3.1</b> (2 HIGH) — CVE-2026-40973 code execution/session hijacking via property binding, CVE-2025-22235 EndpointRequest DoS.</li>
+        </ul>
+        <h4>Fix</h4>
+        <p>Upgrade the parent BOM to the latest <code>3.3.x</code> / <code>3.5.x</code> Spring Boot line (fixes Tomcat, Spring, Jackson, micrometer, spring-security transitively). Run <code>mvn versions:display-dependency-updates</code>, then re-run Trivy to prove the backlog clears. Enable Renovate/Dependabot so <code>pom.xml</code> never drifts this far again. See <code>Backend/trivy.json</code> for the full inventory.</p>
+        <span class="loc">pom.xml:10 (parent BOM), verified via <code>trivy fs Backend</code> 2026-08-09</span>
+      </div></div>
+
+      <!-- H-01 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-01</span><span class="title">IDOR — any authenticated user can read any student's XP data</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">IDOR/BOLA</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>GET /api/v1/xp/{regNo}/summary|history|streaks</code> have no <code>@PreAuthorize</code> and no ownership check — the <code>regNo</code> is an attacker-controlled path param.</p>
+        <h4>Fix</h4>
+        <p>Limit to student-self or <code>ADMIN/TEACHER</code>; derive the target from the authenticated subject when possible.</p>
+        <span class="loc">src/main/java/com/pragatix/student/XpController.java:31-53</span>
+      </div></div>
+
+      <!-- H-02 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-02</span><span class="title">Client-controlled XP awards / batch IDs (ranking manipulation)</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">Server-side validation</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>awardStudentXp</code> trusts <code>request.getXp()</code> when both it and the calculated value are &gt; 0, and batch mode trusts <code>request.getStudentIds()</code> wholesale. A teacher (or any user if role checks lapse) can award arbitrary XP without matching activity/assignment caps.</p>
+        <h4>Fix</h4>
+        <p>Ignore client-supplied <code>xp</code>; recompute from activity config server-side. Validate each student belongs to the teacher's assignment scope before awarding; enforce per-student daily caps in the engine. Re-run assumptions on the "custom XP" feature with an admin approval.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/student/service/StudentXpService.java:118-128, 160-284</span>
+      </div></div>
+
+      <!-- H-03 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-03</span><span class="title">Cross-assignment XP: GroupActivityController awards to arbitrary teams</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">Business Logic</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>POST /api/v1/group-activities/teams/{teamId}/award-xp</code> only checks the actor is TEACHER/ADMIN; there is no check the teacher is assigned to <code>assignmentId</code>, nor that the team belongs to the assignment, and XP is wholly client-supplied.</p>
+        <h4>Fix</h4>
+        <p>Verify the assignment's assigned faculty == caller; constrain team membership to the assignment scope; recompute XP server-side; log every award for audit.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/activity/controller/GroupActivityController.java:136-209</span>
+      </div></div>
+
+      <!-- H-04 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-04</span><span class="title">Information disclosure via raw exception messages</span>
+        <div class="tags"><span class="tag">A02</span><span class="tag">Error handling</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Handlers return <code>ex.getMessage()</code> and validation/DB messages that can leak SQL fragments, usernames, or system internals; user-not-found messages enumerate valid identities.</p>
+        <h4>Fix</h4>
+        <p>Return only safe, generic messages; log details server-side with request IDs to the client.</p>
+        <span class="loc">src/main/java/com/pragatix/common/exception/GlobalExceptionHandler.java:73-85,117-122</span>
+      </div></div>
+
+      <!-- H-05 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-05</span><span class="title">stdout PII / debug spew in production paths</span>
+        <div class="tags"><span class="tag">A09</span><span class="tag">PII</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Many endpoints emit <code>System.out.println</code> with usernames, IDs, request payloads, roles, and forensic auth data — e.g. JwtAuthFilter dumps the full auth context to stdout for analytics URIs. CloudWatch/stdout captures become a sensitive-data sink.</p>
+        <h4>Fix</h4>
+        <p>Remove all debug <code>System.out/err</code>; use SLF4J with proper levels; never log active tokens, passwords, or full payloads.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/authentication/security/JwtAuthFilter.java:84-92<br>src/main/java/com/pragatix/modules/authentication/service/AuthService.java:253-255</span>
+      </div></div>
+
+      <!-- H-06 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-06</span><span class="title">JWT accepted in query string → token leak into logs</span>
+        <div class="tags"><span class="tag">A09</span><span class="tag">Token handling</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>JwtAuthFilter</code> also accepts <code>?access_token=</code>, and <code>ApiLoggingFilter</code> logs the full URI including the query string. Any logged referral/URL with the token becomes a credential leak (also busts security scanners that flag the scheme).</p>
+        <h4>Fix</h4>
+        <p>Accept tokens only in the <code>Authorization: Bearer</code> header; scrub query strings from logs.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/authentication/security/JwtAuthFilter.java:61<br>src/main/java/com/pragatix/infrastructure/logging/ApiLoggingFilter.java:31-40</span>
+      </div></div>
+
+      <!-- H-07 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-07</span><span class="title">Network exposure: binds 0.0.0.0; unencrypted MySQL</span>
+        <div class="tags"><span class="tag">A05</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>server.address: 0.0.0.0</code> and <code>jdbc:mysql...useSSL=false&allowPublicKeyRetrieval=true</code> expose the DB layer to MITM and make the API reachable from every interface.</p>
+        <h4>Fix</h4>
+        <p>Bind to the private/ALB-facing interface; require TLS for MySQL; enforce TLS on the load balancer and restrict security-group ingress.</p>
+        <span class="loc">src/main/resources/application.yml:2,13</span>
+      </div></div>
+
+      <!-- H-08 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-08</span><span class="title">Predictable default student passwords (DOB or regNo)</span>
+        <div class="tags"><span class="tag">A07</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Imported students get password = <code>ddMMyyyy</code> of DOB, else regNo. DOB is widely known; combined with the "magic" backdoor being removed, this still grants easy hijack before first login. There is no forced-password-change flow.</p>
+        <h4>Fix</h4>
+        <p>Generate strong random initial passwords; require change-on-first-login; add a proper password reset (email/OTP) flow.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/student/service/StudentImportService.java:544</span>
+      </div></div>
+
+      <!-- H-09 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-09</span><span class="title">Rate-limit &amp; IP-block bypass via spoofed X-Forwarded-For</span>
+        <div class="tags"><span class="tag">A04</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Both filters trust <code>X-Forwarded-For</code>'s first entry as the client IP. A direct client can set arbitrary XFF values and rotate them to bypass auth rate limits and IP blocks, enabling credential brute-force.</p>
+        <h4>Fix</h4>
+        <p>Only trust XFF when running behind your ALB/proxy (parse the left-most entry added by the trusted proxy); fall back to <code>getRemoteAddr()</code>; consider per-account lockout with exponential backoff.</p>
+        <span class="loc">src/main/java/com/pragatix/infrastructure/security/IpBlockingFilter.java:68-74<br>src/main/java/com/pragatix/infrastructure/security/RateLimitingFilter.java:52</span>
+      </div></div>
+
+      <!-- H-10 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-10</span><span class="title">Activity request approve/reject lacks object-level check</span>
+        <div class="tags"><span class="tag">A01</span><span class="tag">IDOR</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>approveRequest/rejectRequest</code> by <code>{id}</code> only verifies the caller is TEACHER/ADMIN/CC and the request is PENDING — any such role can approve/reject a request for a student/activity they are not assigned to.</p>
+        <h4>Fix</h4>
+        <p>Reuse the same assigned-teacher/CC logic used in <code>getInbox</code> inside approve/reject before mutating state. Add audit fields <code>approved_by_role</code>.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/student/service/ActivityCompletionRequestService.java:217-266</span>
+      </div></div>
+
+      <!-- H-11 -->
+      <div class="ppl high"><div class="ppl-hd">
+        <span class="sev high">High</span><span class="id">H-11</span><span class="title">Twilio Auth Token leaked in git history (2 commits)</span>
+        <div class="tags"><span class="tag">A05</span><span class="tag">A02</span><span class="tag">Secrets</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Gitleaks scan of the full commit history (110 commits, 2026-08-09) found the literal Twilio Auth Token (<code>e0980e6c...</code>) in <code>src/main/resources/application.properties</code> across commits <code>ab9646a</code> and <code>4dd8343</code>. The token is part of the public repo history forever, even though the <em>current</em> file now reads it from env vars.</p>
+        <h4>Fix</h4>
+        <ul>
+          <li><b>Revoke/rotate the Twilio Auth Token in the Twilio console immediately</b> — treat it as compromised (this is also the token powering the SMS OTP flows, L-02).</li>
+          <li>Purge secrets from history with <code>git filter-repo</code> (or BFG) and force-push all branches/tags.</li>
+          <li>Configure Gitleaks to fail the pipeline (currently <code>continue-on-error: true</code>) and add custom rules for the JWT secret + datasource line (C-02/C-03).</li>
+        </ul>
+        <span class="loc">git history — src/main/resources/application.properties (commits ab9646a, 4dd8343)</span>
+      </div></div>
+
+      <!-- M-01 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-01</span><span class="title">Native SQL built by string concatenation (parameterized, but review ordering/sort)</span>
+        <div class="tags"><span class="tag">A03</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>buildWhereClause()</code> concatenates condition strings then binds parameters via <code>setParameter</code> — that specific path is safe. However any future string value passed into <code>ORDER BY</code>/column names, plus <code>sortBy</code> in <code>StudentController.getAllStudents</code>, could be injectable. Semgrep flagged the concatenation pattern (see <code>semgrep.json</code>).</p>
+        <h4>Fix</h4>
+        <p>Whitelist sort/column names; prefer Spring Data projections; keep all values parameterized; add explicit tests for each boundary.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/analytics/repository/AttendanceAnalyticsRepositoryCustomImpl.java:20-56<br>src/main/java/com/pragatix/modules/analytics/repository/XpAnalyticsRepositoryCustomImpl.java:21</span>
+      </div></div>
+
+      <!-- M-02 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-02</span><span class="title">Swagger/API-docs + actuator exposed</span>
+        <div class="tags"><span class="tag">A05</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>/api-docs/**</code>, <code>/swagger-ui/**</code> are public. This maps the entire attack surface (endpoints, schemas, DTO field names) for reconnaissance.</p>
+        <h4>Fix</h4>
+        <p>Disable springdoc in prod or guard with an admin role + IP allowlist; keep only <code>/actuator/health</code> public and hide version info.</p>
+        <span class="loc">src/main/java/com/pragatix/common/config/SwaggerConfig.java<br>src/main/java/com/pragatix/modules/authentication/security/SecurityConfig.java:72-83</span>
+      </div></div>
+
+      <!-- M-03 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-03</span><span class="title">Debug data-disclosure endpoint ships in production</span>
+        <div class="tags"><span class="tag">A09</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>TempDebugController</code> exposes <code>GET /api/v1/public/debug/attendance-activity</code>, returning raw activity/stage/subgroup internals.</p>
+        <h4>Fix</h4>
+        <p>Remove <code>TempDebugController</code> entirely (or gate behind a dev-only profile and remove from the jar).</p>
+        <span class="loc">src/main/java/com/pragatix/modules/admin/controller/TempDebugController.java</span>
+      </div></div>
+
+      <!-- M-04 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-04</span><span class="title">CORS allows any localhost port with credentials</span>
+        <div class="tags"><span class="tag">A05</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Origin pattern <code>http://localhost:*</code> allows every local port to read credentialed responses — a local malware page/browser extension can call APIs with the JWT.</p>
+        <h4>Fix</h4>
+        <p>Pin exact dev origins (<code>http://localhost:5173</code>) or drop credentials in dev; keep the prod origin allowlist minimal.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/authentication/security/SecurityConfig.java:153-188</span>
+      </div></div>
+
+      <!-- M-05 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-05</span><span class="title">Jsoup-on-JSON sanitizer corrupts payloads &amp; is weak XSS control</span>
+        <div class="tags"><span class="tag">A03</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>XssRequestWrapper</code> runs <code>Jsoup.clean(body, Safelist.none())</code> on the entire JSON body, mangling legitimate data (e.g. passwords containing <code>&lt;</code>), and provides only superficial content cleaning rather than output encoding.</p>
+        <h4>Fix</h4>
+        <p>Drop the global body-scrubber; rely on typed DTOs + bean validation + output-encoding on the front end; sanitize free-text fields at the point of persistence if HTML is not expected.</p>
+        <span class="loc">src/main/java/com/pragatix/infrastructure/security/XssRequestWrapper.java:101-107</span>
+      </div></div>
+
+      <!-- M-06 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-06</span><span class="title">Student list readable by STUDENT role</span>
+        <div class="tags"><span class="tag">A01</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>GET /api/v1/students</code> is open to <code>ADMIN, TEACHER, STUDENT</code>, returning paginated PII for all students (names/regNos/emails).</p>
+        <h4>Fix</h4>
+        <p>Restrict list/search/detail to ADMIN/TEACHER (and CC within scope); students use only <code>/me</code> endpoints.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/student/controller/StudentController.java:62-72</span>
+      </div></div>
+
+      <!-- M-07 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-07</span><span class="title">Weak password policy (min 4 chars)</span>
+        <div class="tags"><span class="tag">A07</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>@Size(min=4)</code> password rule and no complexity/rotation. 4-character bcrypt passwords are trivially brute-forced offline once a hash leaks.</p>
+        <h4>Fix</h4>
+        <p>Enforce ≥ 12 chars with mixed classes; reject breached passwords; add MFA for admins; periodic rotation with history.</p>
+        <span class="loc">src/main/java/com/pragatix/modules/authentication/dto/request/CreateUserRequest.java:12</span>
+      </div></div>
+
+      <!-- M-08 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-08</span><span class="title">Unbounded in-memory rate-limit map (memory DoS)</span>
+        <div class="tags"><span class="tag">A05</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p><code>ConcurrentHashMap</code> buckets are never evicted; spoofed rotating XFF keys cause unbounded growth → OOM.</p>
+        <h4>Fix</h4>
+        <p>Use keyed expiry (Caffeine/Guava BoundedLocalCache) with TTL cleanup, or move limiting to the edge/ALB + WAF.</p>
+        <span class="loc">src/main/java/com/pragatix/infrastructure/security/RateLimitingFilter.java:32-33</span>
+      </div></div>
+
+      <!-- M-09 -->
+      <div class="ppl med"><div class="ppl-hd">
+        <span class="sev medium">Medium</span><span class="id">M-09</span><span class="title">SQL/data errors surfaced to clients</span>
+        <div class="tags"><span class="tag">A02</span></div>
+      </div><div class="ppl-bd">
+        <h4>Vulnerability</h4>
+        <p>Various <code>ApiResponse.error(ex.getMessage())</code> and DataIntegrity handling can leak schema/paths back to attackers.</p>
+        <h4>Fix</h4>
+        <p>Log full details server-side; return generic status text; validation messages may stay but map programmatically.</p>
+        <span class="loc">src/main/java/com/pragatix/common/exception/GlobalExceptionHandler.java:73-85,163-177</span>
+      </div></div>
+
+      <!-- L-01..L-05 -->
+      <div class="ppl low"><div class="ppl-hd">
+        <span class="sev low">Low</span><span class="id">L-01</span><span class="title">Default Spring credentials admin/admin</span>
+        <div class="tags"><span class="tag">A05</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Remove <code>spring.security.user</code> (or set strong generated creds); disable the auto-configured in-memory user.</p>
+        <span class="loc">application.yml:27-30</span>
+      </div></div>
+
+      <div class="ppl low"><div class="ppl-hd">
+        <span class="sev low">Low</span><span class="id">L-02</span><span class="title">SMS/OTP abuse lacks per-number throttling &amp; template auth</span>
+        <div class="tags"><span class="tag">A04</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Rate-limit per phone; use server-authored templates only; verify sender; log via audit service.</p>
+        <span class="loc">modules/notification/config/TwilioConfig.java</span>
+      </div></div>
+
+      <div class="ppl low"><div class="ppl-hd">
+        <span class="sev low">Low</span><span class="id">L-03</span><span class="title">Leaderboard readable by all authenticated users</span>
+        <div class="tags"><span class="tag">A01</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Confirm intended audience; if public, keep PII minimal (names + scores only).</p>
+        <span class="loc">modules/leaderboard/controller/LeaderboardController.java</span>
+      </div></div>
+
+      <div class="ppl low"><div class="ppl-hd">
+        <span class="sev low">Low</span><span class="id">L-04</span><span class="title">Weak CSP directives ('unsafe-inline' 'unsafe-eval')</span>
+        <div class="tags"><span class="tag">A05</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Remove 'unsafe-*', add nonces/hashes if inline scripts needed; move XSS filter deprecation.</p>
+        <span class="loc">SecurityConfig.java:93</span>
+      </div></div>
+
+      <div class="ppl low"><div class="ppl-hd">
+        <span class="sev low">Low</span><span class="id">L-05</span><span class="title">Bulk import trusts client flags/IDs</span>
+        <div class="tags"><span class="tag">A01</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>CC/Admin scoping is present; also validate <code>active</code> and team/section references belong to caller's scope.</p>
+        <span class="loc">modules/student/service/StudentImportService.java:586</span>
+      </div></div>
+
+      <!-- Info items -->
+      <div class="ppl info"><div class="ppl-hd">
+        <span class="sev info">Info</span><span class="id">I-01</span><span class="title">Inconsistent role guard syntax (hasRole('ROLE_...') vs hasAnyRole('...'))</span>
+        <div class="tags"><span class="tag">Best practice</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Spring's <code>hasRole</code> auto-prefixes <code>ROLE_</code>. Using <code>hasRole('ROLE_ADMIN')</code> becomes <code>ROLE_ROLE_ADMIN</code> and silently Deny's or mismatch-es with other controllers. Normalize to <code>hasRole('ADMIN')</code> everywhere and unit-test each guard.</p>
+        <span class="loc">AttendanceEngineController.java:33, CaptainRewardController:14, AcademicCalendarController:18 vs AdminXxx controllers</span>
+      </div></div>
+
+      <div class="ppl info"><div class="ppl-hd">
+        <span class="sev info">Info</span><span class="id">I-02</span><span class="title">Field injection &amp; duplicate imports</span>
+        <div class="tags"><span class="tag">Maintainability</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Use constructor injection for testability; prune duplicate imports; run Checkstyle/PMD in CI (configs exist).</p>
+      </div></div>
+
+      <div class="ppl info"><div class="ppl-hd">
+        <span class="sev info">Info</span><span class="id">I-03</span><span class="title">Dependency hygiene</span>
+        <div class="tags"><span class="tag">Supply chain</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Run <code>mvn versions:display-dependency-updates</code>; pin POI, commons-io, springdoc, twilio to latest patched; add OWASP dependency-check / Renovate in the existing security workflow.</p>
+        <span class="loc">pom.xml</span>
+      </div></div>
+
+      <div class="ppl info"><div class="ppl-hd">
+        <span class="sev info">Info</span><span class="id">I-04</span><span class="title">ddl-auto=update in production</span>
+        <div class="tags"><span class="tag">Best practice</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Use schema migrations (Flyway, already present under <code>migration/</code>) with <code>ddl-auto: validate</code>.</p>
+      </div></div>
+
+      <div class="ppl info"><div class="ppl-hd">
+        <span class="sev info">Info</span><span class="id">I-05</span><span class="title">Token lifecycle (no refresh/revocation)</span>
+        <div class="tags"><span class="tag">Best practice</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Add short-lived access + refresh tokens, revocation on password change, <code>jti</code> denylist, and MFA for privileged roles.</p>
+      </div></div>
+
+      <div class="ppl info"><div class="ppl-hd">
+        <span class="sev info">Info</span><span class="id">I-06</span><span class="title">Security test coverage</span>
+        <div class="tags"><span class="tag">QA</span></div>
+      </div><div class="ppl-bd">
+        <h4>Fix</h4>
+        <p>Add authN/authZ integration tests (e.g., student-token hitting teacher/admin endpoints must be 403), login-enumeration tests, and token-forgery tests.</p>
+        <span class="loc">src/test (only JwtUtilTest / AuthControllerTest)</span>
+      </div></div>
+
+    </div>
+  </section>
+
+  <!-- ================== OWASP MAPPING ================== -->
+  <section>
+    <h2>&#128508; 5. OWASP Top 10 (2021) Coverage</h2>
+    <div class="inner ove">
+      <table>
+        <tr><th>OWASP Top 10</th><th>Status</th><th>Key Findings</th></tr>
+        <tr><td>A01 Broken Access Control</td><td><span class="sev critical">SEVERE</span></td><td>C-04, C-05, C-06, C-07, H-01, H-02, H-03, H-10, M-06, L-03</td></tr>
+        <tr><td>A02 Cryptographic Failures</td><td><span class="sev high">HIGH</span></td><td>C-02, C-08, H-04, H-05</td></tr>
+        <tr><td>A03 Injection</td><td><span class="sev med">MEDIUM</span></td><td>M-01, M-05, M-09 (parameterized paths OK, review sort/order-by)</td></tr>
+        <tr><td>A04 Insecure Design</td><td><span class="sev high">HIGH</span></td><td>H-02, H-03, H-09, M-08, L-02</td></tr>
+        <tr><td>A05 Security Misconfiguration</td><td><span class="sev critical">SEVERE</span></td><td>C-02, C-03, H-07, H-11, M-02, M-04, L-01, L-04, I-04</td></tr>
+        <tr><td>A06 Vulnerable Components</td><td><span class="sev critical">SEVERE</span></td><td>C-09 (33 CVEs — upgrade Spring Boot BOM now)</td></tr>
+        <tr><td>A07 Identification &amp; Auth Failures</td><td><span class="sev critical">SEVERE</span></td><td>C-01, H-08, M-07, I-05</td></tr>
+        <tr><td>A08 Software &amp; Data Integrity</td><td><span class="sev low">LOW</span></td><td>I-04, I-03-residue (migrate to strict migrations)</td></tr>
+        <tr><td>A09 Logging &amp; Monitoring</td><td><span class="sev high">HIGH</span></td><td>C-08, H-05, H-06, M-03</td></tr>
+        <tr><td>A10 SSRF</td><td><span class="sev low">LOW</span></td><td>No outbound URL-fetch endpoints found; keep <code>proofUrl</code>/<code>evidenceUrl</code> as display-only strings, validate before any fetch</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================== PRIORITY ROADMAP ================== -->
+  <section>
+    <h2>&#128200; 6. 30–60–90 Remediation Roadmap</h2>
+    <div class="inner sum-grid">
+      <div>
+        <h3 style="color:var(--crit);">Immediately (0–7 days)</h3>
+        <ul>
+          <li>Patch C-01: remove the <code>"magic"</code> backdoor and rotate any password so affected — treat all student logins as potentially compromised.</li>
+          <li>Patch C-02/C-03: move DB creds + JWT secret to env/Secrets Manager; rotate both now.</li>
+          <li>Patch C-09: upgrade Spring Boot parent BOM (clears 33 CVEs incl. Tomcat RCE).</li>
+          <li>Patch H-11: rotate the leaked Twilio Auth Token in the Twilio console + purge git history (<code>git filter-repo</code>).</li>
+          <li>Patch C-04/C-05/C-06: add role + object-level guards to attendance &amp; badge controllers.</li>
+          <li>Stop logging passwords/hashes/tokens (C-08, H-05, H-06).</li>
+          <li>Add authZ integration tests for the five personas.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--high);">Short term (1–4 weeks)</h3>
+        <ul>
+          <li>Fix privilege escalation (C-07): super-admin-only role assignment, whitelisted roles.</li>
+          <li>Server-side XP computation &amp; assignment scoping (H-02/H-03/H-10).</li>
+          <li>Trusted-proxy handling for XFF; fix rate-limit map leak (H-09, M-08).</li>
+          <li>Enforce strong password policy, default-password flow, reset+OTP (H-08, M-07).</li>
+          <li>Remove debug endpoint + stdout spew; gate Swagger/actuator (M-02/M-03).</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--med);">Mid term (1–3 months)</h3>
+        <ul>
+          <li>Asymmetric JWT (RS256/ES256), issuer/audience, refresh tokens, revocation (I-05).</li>
+          <li>Flyway strict mode (I-04), dependency upgrade + CI hardening (I-03).</li>
+          <li>CSP tightening, output-encoding strategy, remove Jsoup-on-JSON scrubber (M-05, L-04).</li>
+          <li>Annual offensive re-test + DAST once environment is available.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--info);">Ongoing</h3>
+        <ul>
+          <li>Enable DAST (OWASP ZAP/nuclei) in CI on a staging instance.</li>
+          <li>Wire audit-log retention &amp; alerting (failed logins, privilege changes).</li>
+          <li>Add WAF + rate limiting at edge; MFA for admins.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>&#128202; 7. Scanner Outputs (raw references)</h2>
+    <div class="inner ove">
+      <table>
+        <tr><th>Scanner</th><th>Output file</th><th>Highlights</th></tr>
+        <tr><td>Gitleaks</td><td><code>gitleaks.json</code> / <code>gitleaks-repo.json</code></td><td>Working tree clean; <b>2 commits leak the Twilio Auth Token</b> (H-11). Hard-coded secrets C-02/C-03 are plaintext phrases not caught by default rules — add custom rules for the JWT secret pattern &amp; datasource password line.</td></tr>
+        <tr><td>Semgrep</td><td><code>semgrep.json</code></td><td>18 findings: CRLF/log injection in ApiLoggingFilter; concatenated native-SQL strings (M-01); <code>printStackTrace</code> in BadgeRequestService &amp; StudentXpService.</td></tr>
+        <tr><td>Trivy (dependency)</td><td><code>trivy-backend.json</code> / <code>trivy.json</code></td><td><b>33 unique CVEs</b> (6 CRITICAL / 27 HIGH) — Spring Boot 3.3.1 parent BOM; see C-09 for detail and fix. Frontend (Flutter) scan: 0 findings.</td></tr>
+        <tr><td>Trivy (misconfig)</td><td><code>trivy-misconfig.json</code></td><td>No misconfigurations flagged in infrastructure/ or GitHub Actions.</td></tr>
+        <tr><td>Manual review</td><td>This report</td><td>40 total findings; 9 critical / 11 high / 9 medium / 5 low / 6 info.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <div class="note">
+    <b>Disclaimer:</b> This is a static source review performed on an offline local copy focused on the OpenAPI/OWASP-relevant attack surface and the five personas. It does not replace dynamic testing against a live deployment (DAST), dependency-CVE scanning with current feeds, or an infrastructure/host audit. All line numbers refer to the current local working tree.
+  </div>
+
+</div>
+</body>
+</html>
