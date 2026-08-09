@@ -1,0 +1,118 @@
+{
+  "scan_time": "2026-08-07 11:02:34",
+  "source_path": "N:\\pragatiX\\Sql_Dump\\PragatiX-SQL.dump",
+  "total_files": 180,
+  "total_statements": 1363,
+  "object_counts": {
+    "TABLE": 229
+  },
+  "severity_counts": {
+    "Info": 259,
+    "Low": 30,
+    "Medium": 14
+  },
+  "category_counts": {
+    "Best Practices": 1,
+    "Data Quality": 20,
+    "Performance": 8,
+    "Schema Design": 274
+  },
+  "scores": {
+    "security": 82.47,
+    "performance": 72.29,
+    "quality": 32.98,
+    "security_grade": "B",
+    "performance_grade": "C",
+    "quality_grade": "F"
+  },
+  "top_risk_tables": [
+    {
+      "table": "students",
+      "risk_score": 22,
+      "count": 4,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "users",
+      "risk_score": 22,
+      "count": 4,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "group_deletion_audit_log",
+      "risk_score": 16,
+      "count": 5,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "activities",
+      "risk_score": 11,
+      "count": 2,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "badges",
+      "risk_score": 11,
+      "count": 2,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "sms_notifications",
+      "risk_score": 11,
+      "count": 2,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "attendance",
+      "risk_score": 9,
+      "count": 2,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "penalty_requests",
+      "risk_score": 8,
+      "count": 1,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "activity_stages",
+      "risk_score": 8,
+      "count": 1,
+      "criticals": 0,
+      "highs": 0
+    },
+    {
+      "table": "streaks",
+      "risk_score": 8,
+      "count": 1,
+      "criticals": 0,
+      "highs": 0
+    }
+  ],
+  "files_with_most_issues": [
+    {
+      "file": "00_ALL_TABLE_SCHEMAS.sql",
+      "count": 274
+    },
+    {
+      "file": "00_ALL_TABLE_DATA.sql",
+      "count": 26
+    },
+    {
+      "file": "data\\notifications.sql",
+      "count": 2
+    },
+    {
+      "file": "data\\penalty_requests.sql",
+      "count": 1
+    }
+  ]
+}

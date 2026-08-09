@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "generated_at": "2026-08-09T14:51:07.865839+00:00",
+    "tool": "PragatiX DevSecOps Report Merger v1.0",
+    "total_findings": 0,
+    "sonar_enabled": false
+  },
+  "summary": {
+    "severity_counts": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0,
+      "INFO": 0
+    },
+    "secrets_found": false,
+    "critical_vulns": 0,
+    "high_vulns": 0,
+    "medium_vulns": 0,
+    "low_vulns": 0
+  },
+  "coverage": {
+    "line_covered": 0,
+    "line_missed": 0,
+    "branch_covered": 0,
+    "branch_missed": 0,
+    "method_covered": 0,
+    "method_missed": 0,
+    "line_pct": 0.0,
+    "branch_pct": 0.0,
+    "method_pct": 0.0
+  },
+  "tests": {
+    "tests": 0,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "sonar": {
+    "status": "SKIPPED",
+    "reason": "SONAR_ENABLED=false"
+  },
+  "sbom": {
+    "cyclonedx": {
+      "format": "cyclonedx",
+      "component_count": 0
+    },
+    "spdx": {
+      "format": "spdx",
+      "component_count": 0
+    }
+  },
+  "findings": []
+}

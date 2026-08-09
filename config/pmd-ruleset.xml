@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<ruleset name="PragatiX PMD Ruleset"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                        https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <!--
+    ============================================================================
+    pmd-ruleset.xml — PMD Static Analysis Ruleset for PragatiX / SPDMS Backend
+    ============================================================================
+    Uses PMD's built-in rulesets at practical severity levels.
+    Run via: mvn pmd:pmd -Dpmd.rulesets=config/pmd-ruleset.xml
+    PMD Docs: https://docs.pmd-code.org/latest/pmd_rules_java.html
+    ============================================================================
+    -->
+    <description>PragatiX Backend PMD Rules — Java 21, Spring Boot 3.x</description>
+
+    <!-- Exclude generated and target sources -->
+    <exclude-pattern>.*/generated/.*</exclude-pattern>
+    <exclude-pattern>.*/target/.*</exclude-pattern>
+
+    <!-- ── Best Practices ────────────────────────────────────────────────── -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="GuardLogStatement"/>         <!-- @Slf4j handles this -->
+        <exclude name="JUnitTestContainsTooManyAsserts"/>
+        <exclude name="JUnitAssertionsShouldIncludeMessage"/>
+    </rule>
+
+    <!-- ── Code Style ────────────────────────────────────────────────────── -->
+    <rule ref="category/java/codestyle.xml">
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="OnlyOneReturn"/>            <!-- Multiple returns are fine -->
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="DefaultPackage"/>
+        <exclude name="LongVariable"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="ShortClassName"/>
+        <exclude name="FieldNamingConventions"/>   <!-- Lombok/Spring handle this -->
+        <exclude name="LocalVariableNamingConventions"/>
+        <exclude name="MethodNamingConventions"/>
+    </rule>
+
+    <!-- ── Design Rules ──────────────────────────────────────────────────── -->
+    <rule ref="category/java/design.xml">
+        <exclude name="LawOfDemeter"/>             <!-- Too strict for Spring DI -->
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="DataClass"/>                <!-- DTOs/entities are data classes -->
+        <exclude name="UseUtilityClass"/>          <!-- Spring @Component classes -->
+    </rule>
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="methodReportLevel" value="15"/>
+            <property name="classReportLevel" value="80"/>
+        </properties>
+    </rule>
+
+    <!-- ── Error Prone ───────────────────────────────────────────────────── -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="BeanMembersShouldSerialize"/>   <!-- Not all beans are serializable -->
+        <exclude name="DataflowAnomalyAnalysis"/>       <!-- False positives with Lombok -->
+        <exclude name="UseProperClassLoader"/>
+    </rule>
+
+    <!-- ── Multithreading ────────────────────────────────────────────────── -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="UseConcurrentHashMap"/>     <!-- Sometimes HashMap is intentional -->
+        <exclude name="DoNotUseThreads"/>          <!-- Spring Async/@Scheduled uses threads -->
+    </rule>
+
+    <!-- ── Performance ───────────────────────────────────────────────────── -->
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsJustToGetClass"/>
+    </rule>
+
+    <!-- ── Security (CRITICAL — do not exclude these) ─────────────────────── -->
+    <rule ref="category/java/security.xml"/>
+
+    <!-- Custom tweaks for specific rules -->
+    <rule ref="category/java/design.xml/ExcessiveClassLength">
+        <properties>
+            <property name="minimum" value="500"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/design.xml/ExcessiveMethodLength">
+        <properties>
+            <property name="minimum" value="100"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/design.xml/TooManyMethods">
+        <properties>
+            <property name="maxmethods" value="25"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/design.xml/TooManyFields">
+        <properties>
+            <property name="maxfields" value="20"/>
+        </properties>
+    </rule>
+</ruleset>

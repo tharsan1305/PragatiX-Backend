@@ -1,0 +1,760 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PragatiX Security Report (Local) â€” 2026-08-09</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+/* ===========================================================================
+   dashboard.css â€” PragatiX DevSecOps Dashboard Styles
+   Dark enterprise theme â€” referenced by final-security-report.html
+   =========================================================================== */
+
+:root {
+  --bg-main:    #0d0d1a;
+  --bg-card:    #13132a;
+  --bg-panel:   #1a1a2e;
+  --bg-input:   #1e1e3e;
+  --border:     #2d2d50;
+  --accent:     #7c3aed;
+  --accent2:    #06b6d4;
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --orange:     #f97316;
+  --yellow:     #eab308;
+  --blue:       #3b82f6;
+  --text:       #e2e8f0;
+  --text-muted: #94a3b8;
+  --sidebar-w:  230px;
+  --radius:     10px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.4);
+}
+
+/* â”€â”€ Reset & Base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg-main);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.sidebar-brand-text small {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 8px;
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 7px;
+  font-size: 13px;
+  margin-bottom: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-link:hover, .nav-link.active {
+  background: rgba(124,58,237,0.18);
+  color: var(--accent);
+}
+.nav-link i { width: 18px; text-align: center; }
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.main-content {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  padding: 24px 28px;
+  max-width: 1400px;
+}
+
+/* â”€â”€ Page Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: linear-gradient(135deg, #1a1a3e, #0d0d2e);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.page-header h1 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.page-header h1 small {
+  font-size: 1rem;
+  font-weight: 400;
+  -webkit-text-fill-color: var(--text-muted);
+  color: var(--text-muted);
+}
+.header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.meta-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.meta-chip i { margin-right: 4px; }
+
+/* â”€â”€ Gate Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gate-badge {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+.gate-badge small { display: block; font-size: 11px; font-weight: 400; margin-top: 2px; }
+.gate-pass { background: rgba(34,197,94,0.15); border: 1.5px solid #22c55e; color: #22c55e; }
+.gate-fail { background: rgba(239,68,68,0.15);  border: 1.5px solid #ef4444; color: #ef4444; }
+
+/* â”€â”€ Sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent2);
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 18px;
+}
+.section-title i { margin-right: 8px; }
+
+/* â”€â”€ Info Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-panel);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.info-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 110px;
+  flex-shrink: 0;
+}
+.info-val {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+/* â”€â”€ Severity Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.sev-cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.sev-card {
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+  padding: 18px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  transition: transform 0.2s;
+}
+.sev-card:hover { transform: translateY(-3px); }
+.sev-num { font-size: 2.4rem; font-weight: 900; line-height: 1; }
+.sev-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.sev-critical { background: rgba(239,68,68,0.1);   border-color: #ef4444; }
+.sev-critical .sev-num { color: #ef4444; }
+.sev-high     { background: rgba(249,115,22,0.1);  border-color: #f97316; }
+.sev-high .sev-num     { color: #f97316; }
+.sev-medium   { background: rgba(234,179,8,0.1);   border-color: #eab308; }
+.sev-medium .sev-num   { color: #eab308; }
+.sev-low      { background: rgba(59,130,246,0.1);  border-color: #3b82f6; }
+.sev-low .sev-num      { color: #3b82f6; }
+.sev-info     { background: rgba(107,114,128,0.1); border-color: #6b7280; }
+.sev-info .sev-num     { color: #6b7280; }
+
+/* â”€â”€ Charts Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.chart-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.chart-card h4 {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+/* â”€â”€ Tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.status-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.status-table th {
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.status-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+}
+.status-table tr:last-child td { border-bottom: none; }
+.status-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.status-pass { color: #22c55e; font-weight: 600; }
+.status-fail { color: #ef4444; font-weight: 600; }
+.status-skip { color: #94a3b8; }
+.status-warn { color: #f97316; font-weight: 600; }
+
+/* â”€â”€ Findings Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.table-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--accent); }
+.sev-filter {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.table-wrap { overflow-x: auto; }
+.findings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.findings-table th {
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+.findings-table th:hover { color: var(--accent2); }
+.findings-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(45,45,80,0.5);
+  color: var(--text);
+  vertical-align: middle;
+}
+.findings-table td.col-file { max-width: 180px; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
+.findings-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* â”€â”€ Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badge-critical { background: rgba(239,68,68,0.15);   color: #ef4444; border: 1px solid #ef4444; }
+.badge-high     { background: rgba(249,115,22,0.15);  color: #f97316; border: 1px solid #f97316; }
+.badge-medium   { background: rgba(234,179,8,0.15);   color: #eab308; border: 1px solid #eab308; }
+.badge-low      { background: rgba(59,130,246,0.15);  color: #3b82f6; border: 1px solid #3b82f6; }
+.badge-info     { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid #6b7280; }
+
+/* â”€â”€ Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.metric-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.metric-card {
+  flex: 1;
+  min-width: 100px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+.metric-card.metric-fail { border-color: #ef4444; background: rgba(239,68,68,0.07); }
+.metric-val   { font-size: 2rem; font-weight: 800; color: var(--accent); }
+.metric-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* â”€â”€ Coverage Bars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.coverage-bars { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.cov-bar-row { display: flex; align-items: center; gap: 12px; }
+.cov-label { width: 130px; flex-shrink: 0; font-size: 13px; color: var(--text-muted); }
+.cov-track { flex: 1; height: 12px; background: var(--bg-panel); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.cov-fill  { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
+.cov-ok    { background: linear-gradient(90deg, #7c3aed, #06b6d4); }
+.cov-warn  { background: linear-gradient(90deg, #ef4444, #f97316); }
+.cov-pct   { width: 48px; text-align: right; font-weight: 700; color: var(--text); }
+
+/* â”€â”€ Gate Result Box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gate-result-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1.5px solid;
+}
+.gate-box-pass { background: rgba(34,197,94,0.08);  border-color: #22c55e; }
+.gate-box-fail { background: rgba(239,68,68,0.08);  border-color: #ef4444; }
+.gate-result-icon  { font-size: 2rem; line-height: 1; }
+.gate-result-text  { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.gate-result-sub   { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+/* â”€â”€ Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.timeline { display: flex; flex-direction: column; gap: 0; }
+.tl-item  { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-left: 2px solid var(--border); margin-left: 10px; padding-left: 18px; }
+.tl-dot   { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-left: -25px; margin-top: 4px; }
+.tl-green { background: #22c55e; }
+.tl-grey  { background: #6b7280; }
+.tl-red   { background: #ef4444; }
+.tl-content { flex: 1; }
+.tl-meta  { font-size: 12px; color: var(--text-muted); }
+
+/* â”€â”€ Final Decision â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.final-decision {
+  text-align: center;
+  padding: 40px;
+}
+.final-icon { font-size: 4rem; margin-bottom: 10px; }
+.final-text { font-size: 1.6rem; font-weight: 900; margin-bottom: 8px; color: var(--text); }
+.final-sub  { color: var(--text-muted); font-size: 13px; }
+
+/* â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-action:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* â”€â”€ Tool Note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tool-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 12px;
+}
+.tool-note code {
+  background: var(--bg-input);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--accent2);
+}
+
+/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.page-footer {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+
+/* â”€â”€ Print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media print {
+  .sidebar, .btn-action, .table-toolbar { display: none !important; }
+  .main-content { margin-left: 0; }
+  .section { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+  body { background: white; color: black; }
+  .page-header { background: white; }
+  .page-header h1 { -webkit-text-fill-color: black; color: black; }
+}
+
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; padding: 16px; }
+  .sev-cards { gap: 8px; }
+  .charts-row { grid-template-columns: 1fr; }
+}
+
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#7c3aed"/><path d="M8 18 L14 12 L22 20 L28 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="28" cy="14" r="3" fill="#06b6d4"/></svg>
+    <span class="sidebar-brand-text">PragatiX<br/><small>Security</small></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#exec" class="nav-link active"><i class="fa fa-chart-pie"></i> Summary</a>
+    <a href="#security" class="nav-link"><i class="fa fa-shield-halved"></i> Findings</a>
+    <a href="#recommendations" class="nav-link"><i class="fa fa-lightbulb"></i> Recommendations</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-action" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
+  </div>
+</nav>
+<main class="main-content">
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Security Report <small>(Local Scan)</small></h1>
+      <div class="header-meta">
+        <span class="meta-chip"><i class="fa fa-calendar"></i> 2026-08-09 20:21:07 (local)</span>
+        <span class="meta-chip"><i class="fa fa-user"></i> Tharsan</span>
+        <span class="meta-chip"><i class="fa fa-code-branch"></i> local</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="gate-badge gate-fail">âŒ GATE: FAIL <small>(report-only)</small></div>
+    </div>
+  </header>
+
+  <section id="exec" class="section">
+    <h2 class="section-title"><i class="fa fa-chart-pie"></i> Executive Summary</h2>
+    <div class="sev-cards">
+      <div class="sev-card sev-critical"><div class="sev-num">0</div><div class="sev-label">Critical</div></div>
+      <div class="sev-card sev-high">    <div class="sev-num">0</div><div class="sev-label">High</div></div>
+      <div class="sev-card sev-medium">  <div class="sev-num">0</div><div class="sev-label">Medium</div></div>
+      <div class="sev-card sev-low">     <div class="sev-num">0</div><div class="sev-label">Low</div></div>
+      <div class="sev-card sev-info">    <div class="sev-num">0</div><div class="sev-label">Info</div></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><h4>Severity Distribution</h4><canvas id="sevChart" height="220"></canvas></div>
+      <div class="chart-card"><h4>Coverage</h4><canvas id="coverageChart" height="220"></canvas></div>
+    </div>
+  </section>
+
+  <section id="security" class="section">
+    <h2 class="section-title"><i class="fa fa-shield-halved"></i> Security Findings (0 total)</h2>
+    <div class="table-toolbar">
+      <input type="text" id="findingsSearch" placeholder="ðŸ” Searchâ€¦" class="search-input" onkeyup="filterTable()"/>
+      <select id="sevFilter" class="sev-filter" onchange="filterTable()">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">Critical</option>
+        <option value="HIGH">High</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+    <table class="findings-table" id="findingsTable">
+      <thead><tr><th>Severity</th><th>Tool</th><th>Finding</th><th>File</th><th>Line</th><th>CWE</th><th>OWASP</th></tr></thead>
+      <tbody id="findingsBody"><tr><td colspan=7>No findings.</td></tr></tbody>
+    </table>
+    </div>
+  </section>
+
+  <footer class="page-footer">PragatiX DevSecOps Dashboard (Local) â€” 2026-08-09 20:21:07 (local)</footer>
+</main>
+</div>
+<script>
+/* ===========================================================================
+   dashboard.js â€” PragatiX DevSecOps Dashboard Logic
+   Interactivity for final-security-report.html
+   =========================================================================== */
+
+// â”€â”€ Sidebar active link on scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+(function initSidebarScroll() {
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('.nav-link');
+  if (!sections.length || !links.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+})();
+
+// â”€â”€ Table filter (used by inline onkeyup/onchange) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// filterTable() and sortTable() are defined inline in the HTML
+// so they're available regardless of load order.
+
+// â”€â”€ Animate severity card numbers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+(function animateNumbers() {
+  document.querySelectorAll('.sev-num').forEach(el => {
+    const target = parseInt(el.textContent, 10);
+    if (isNaN(target) || target === 0) return;
+    let current = 0;
+    const step  = Math.max(1, Math.floor(target / 30));
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, 30);
+  });
+})();
+
+// â”€â”€ Coverage bar animation on intersection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+(function animateBars() {
+  const fills = document.querySelectorAll('.cov-fill');
+  if (!fills.length) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.transition = 'width 1s ease';
+        observer.unobserve(entry.target);
+      }
+    });
+  });
+  fills.forEach(f => {
+    const target = f.style.width;
+    f.style.width = '0%';
+    setTimeout(() => { f.style.width = target; }, 100);
+    observer.observe(f);
+  });
+})();
+
+// â”€â”€ Export JSON helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function exportJSON() {
+  const candidates = ['merged-findings.json', '../reports/merged-findings.json'];
+  let tried = 0;
+
+  function tryNext() {
+    if (tried >= candidates.length) {
+      // Fallback: tell user to download from GitHub Artifacts
+      alert(
+        'Could not locate merged-findings.json from this location.\n\n' +
+        'To download: Go to GitHub Actions â†’ your run â†’ Artifacts â†’ ' +
+        '"FINAL-security-report-<run-number>" and extract merged-findings.json.'
+      );
+      return;
+    }
+    const url = candidates[tried++];
+    fetch(url)
+      .then(r => {
+        if (!r.ok) throw new Error('not found');
+        return r.blob();
+      })
+      .then(blob => {
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = 'merged-findings.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      })
+      .catch(tryNext);
+  }
+  tryNext();
+}
+
+// â”€â”€ Print with pre-expand all collapsibles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.addEventListener('DOMContentLoaded', () => {
+  const printBtn = document.querySelector('.btn-action[onclick*="print"]');
+  if (printBtn) {
+    printBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.print();
+    });
+  }
+});
+
+// â”€â”€ Collapsible sections (toggle on title click) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.section-title').forEach(title => {
+    title.style.cursor = 'pointer';
+    title.addEventListener('click', () => {
+      const section = title.closest('.section');
+      const content = section.querySelector(':not(.section-title)');
+      if (!content) return;
+      const isHidden = content.style.display === 'none';
+      content.style.display = isHidden ? '' : 'none';
+      title.style.opacity   = isHidden ? '1' : '0.6';
+    });
+  });
+});
+
+// â”€â”€ Tooltip for truncated cells â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('td[title]').forEach(td => {
+    if (!td.title) return;
+    td.addEventListener('mouseenter', function (e) {
+      let tip = document.getElementById('_tooltip');
+      if (!tip) {
+        tip = document.createElement('div');
+        tip.id = '_tooltip';
+        tip.style.cssText = [
+          'position:fixed','z-index:9999','background:#1a1a2e',
+          'border:1px solid #2d2d50','color:#e2e8f0','padding:8px 12px',
+          'border-radius:6px','font-size:12px','max-width:400px',
+          'word-break:break-word','pointer-events:none','box-shadow:0 4px 16px rgba(0,0,0,0.5)'
+        ].join(';');
+        document.body.appendChild(tip);
+      }
+      tip.textContent = this.title;
+      tip.style.display = 'block';
+    });
+    td.addEventListener('mousemove', function (e) {
+      const tip = document.getElementById('_tooltip');
+      if (tip) {
+        tip.style.left = Math.min(e.clientX + 12, window.innerWidth - 420) + 'px';
+        tip.style.top  = (e.clientY + 12) + 'px';
+      }
+    });
+    td.addEventListener('mouseleave', function () {
+      const tip = document.getElementById('_tooltip');
+      if (tip) tip.style.display = 'none';
+    });
+  });
+});
+
+new Chart(document.getElementById('sevChart'), {
+  type: 'doughnut',
+  data: { labels: ['Critical','High','Medium','Low','Info'], datasets: [{ data: [0,0,0,0,0], backgroundColor: ['#ef4444','#f97316','#eab308','#3b82f6','#6b7280'], borderWidth: 2, borderColor: '#13132a' }] },
+  options: { plugins: { legend: { labels: { color: '#e2e8f0' } } }, cutout: '60%' }
+});
+new Chart(document.getElementById('coverageChart'), {
+  type: 'bar',
+  data: { labels: ['Line','Branch','Method'], datasets: [{ label: 'Coverage %', data: [0.0,0.0,0.0], backgroundColor: ['#7c3aed','#06b6d4','#22c55e'] }] },
+  options: { scales: { y: { min: 0, max: 100, ticks: { color: '#94a3b8' }, grid: { color: '#2d2d50' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } }, plugins: { legend: { display: false } } }
+});
+function filterTable() {
+  const search = document.getElementById('findingsSearch').value.toLowerCase();
+  const sev = document.getElementById('sevFilter').value.toLowerCase();
+  document.querySelectorAll('#findingsBody tr').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const sevCell = row.cells[0] ? row.cells[0].textContent.toLowerCase() : '';
+    row.style.display = (!search || text.includes(search)) && (!sev || sevCell.includes(sev)) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

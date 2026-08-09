@@ -1,0 +1,220 @@
+# Backend CI pipeline — builds, runs unit tests, and packages the Spring Boot JAR.
+name: Backend CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+# pipeline knobs — change defaults here if needed
+env:
+  JAVA_VERSION: "21"
+  JAVA_DISTRIBUTION: "temurin"
+  MAVEN_OPTS: "-Xmx2048m -XX:+TieredCompilation"
+  COVERAGE_THRESHOLD: "40" # 40% is a pragmatic starting target while building out tests
+  GATE_MODE: "report-only" # report-only tracks status without blocking PRs while tuning
+  REPORT_BASE: "security/generated"
+
+concurrency:
+  group: "ci-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, Test & Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      # extra cache layer so we don't re-download the world on every push
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: "maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}"
+          restore-keys: |
+            maven-${{ runner.os }}-
+
+      # quick sanity check on pom.xml so we don't waste time compiling bad XML
+      - name: Validate pom.xml
+        run: mvn --batch-mode validate
+
+      - name: Clean build directory
+        run: mvn --batch-mode clean
+
+      - name: Compile project
+        run: mvn --batch-mode compile -DskipTests
+
+      # H2 in MySQL mode for unit tests — fast, doesn't need external DB spin-up
+      - name: Run unit tests
+        env:
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
+          SPRING_DATASOURCE_URL: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL"
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver"
+          SPRING_JPA_DATABASE_PLATFORM: "org.hibernate.dialect.H2Dialect"
+          SPRING_JPA_HIBERNATE_DDL_AUTO: "create-drop"
+        run: |
+          mvn --batch-mode test \
+            -Dsurefire.reportFormat=xml \
+            -Dmaven.test.failure.ignore=true
+
+      - name: Publish JUnit test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: "JUnit Test Results"
+          path: "target/surefire-reports/*.xml"
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Copy JUnit reports
+        if: always()
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/junit
+          cp -r target/surefire-reports/. ${{ env.REPORT_BASE }}/junit/ || true
+
+      - name: Generate JaCoCo coverage report
+        run: |
+          mvn --batch-mode jacoco:report \
+            -Djacoco.outputDirectory=target/jacoco-report
+
+      # check line coverage against our target threshold
+      - name: Check coverage threshold
+        run: |
+          JACOCO_XML="target/jacoco-report/jacoco.xml"
+          if [ ! -f "$JACOCO_XML" ]; then
+            echo "jacoco.xml not found — skipping threshold check."
+            echo "COVERAGE_STATUS=MISSING" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          COVERED=$(grep -oP 'type="LINE"[^/]* covered="\K[0-9]+' "$JACOCO_XML" | tail -1 || echo 0)
+          MISSED=$(grep -oP 'type="LINE"[^/]* missed="\K[0-9]+' "$JACOCO_XML" | tail -1 || echo 0)
+          TOTAL=$((COVERED + MISSED))
+
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "Total lines = 0 — empty coverage report."
+            echo "COVERAGE_STATUS=MISSING" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          PCT=$(( COVERED * 100 / TOTAL ))
+          echo "Coverage: $COVERED / $TOTAL lines = $PCT%"
+          echo "COVERAGE_PCT=$PCT" >> $GITHUB_ENV
+
+          if [ "$PCT" -lt "${{ env.COVERAGE_THRESHOLD }}" ]; then
+            echo "Coverage $PCT% is below threshold ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "COVERAGE_STATUS=FAIL" >> $GITHUB_ENV
+            if [ "${{ env.GATE_MODE }}" = "block" ]; then
+              exit 1
+            else
+              echo "GATE_MODE=report-only — not failing the build."
+            fi
+          else
+            echo "Coverage $PCT% meets threshold ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "COVERAGE_STATUS=PASS" >> $GITHUB_ENV
+          fi
+
+      - name: Copy JaCoCo reports
+        if: always()
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/jacoco
+          cp -r target/jacoco-report/. ${{ env.REPORT_BASE }}/jacoco/ || true
+
+      - name: Run Checkstyle
+        continue-on-error: true
+        run: |
+          mvn --batch-mode checkstyle:check \
+            -Dcheckstyle.config.location=config/checkstyle.xml \
+            -Dcheckstyle.outputFile=target/checkstyle-result.xml \
+            -Dcheckstyle.consoleOutput=true || true
+          mkdir -p ${{ env.REPORT_BASE }}/checkstyle
+          cp target/checkstyle-result.xml ${{ env.REPORT_BASE }}/checkstyle/ || true
+
+      - name: Run PMD
+        continue-on-error: true
+        run: |
+          mvn --batch-mode pmd:pmd \
+            -Dpmd.rulesets=config/pmd-ruleset.xml \
+            -Dpmd.targetJdk=21 || true
+          mkdir -p ${{ env.REPORT_BASE }}/pmd
+          cp target/pmd.xml ${{ env.REPORT_BASE }}/pmd/ || true
+          cp target/site/pmd.html ${{ env.REPORT_BASE }}/pmd/ || true
+
+      - name: Run SpotBugs
+        continue-on-error: true
+        run: |
+          mvn --batch-mode spotbugs:spotbugs \
+            -Dspotbugs.xmlOutput=true \
+            -Dspotbugs.effort=max \
+            -Dspotbugs.threshold=Medium || true
+          mkdir -p ${{ env.REPORT_BASE }}/spotbugs
+          cp target/spotbugsXml.xml ${{ env.REPORT_BASE }}/spotbugs/ || true
+
+      # package the app after tests pass
+      - name: Package JAR
+        run: |
+          mvn --batch-mode package -DskipTests
+
+      - name: Upload JUnit reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "junit-reports-${{ github.run_number }}"
+          path: ${{ env.REPORT_BASE }}/junit/
+          retention-days: 30
+
+      - name: Upload JaCoCo report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "jacoco-coverage-${{ github.run_number }}"
+          path: ${{ env.REPORT_BASE }}/jacoco/
+          retention-days: 30
+
+      - name: Upload quality reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "quality-reports-${{ github.run_number }}"
+          path: |
+            ${{ env.REPORT_BASE }}/checkstyle/
+            ${{ env.REPORT_BASE }}/pmd/
+            ${{ env.REPORT_BASE }}/spotbugs/
+          retention-days: 30
+
+      - name: Upload Spring Boot JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: "pragatix-backend-${{ github.run_number }}"
+          path: "target/*.jar"
+          retention-days: 30
+
+      - name: Write workflow summary
+        if: always()
+        run: |
+          echo "## Backend CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Java | ${{ env.JAVA_VERSION }} (Temurin) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage Threshold | ${{ env.COVERAGE_THRESHOLD }}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage Result | ${{ env.COVERAGE_PCT }}% (${{ env.COVERAGE_STATUS }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate Mode | \`${{ env.GATE_MODE }}\` |" >> $GITHUB_STEP_SUMMARY

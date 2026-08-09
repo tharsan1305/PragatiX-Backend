@@ -1,0 +1,39 @@
+<!-- report-template.html — Base template for the PragatiX security report -->
+<!-- Populated at runtime by generate-security-report.sh -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PragatiX Security Report — {{RUN_NUMBER}}</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<!-- Inline dashboard.css at generation time -->
+<style>{{DASHBOARD_CSS}}</style>
+</head>
+<body>
+<div class="layout">
+  {{SIDEBAR}}
+  <main class="main-content">
+    {{PAGE_HEADER}}
+    {{EXEC_SUMMARY}}
+    {{PIPELINE_STATUS}}
+    {{BUILD_TESTS}}
+    {{COVERAGE}}
+    {{QUALITY}}
+    {{SECURITY_FINDINGS}}
+    {{SBOM}}
+    {{RECOMMENDATIONS}}
+    {{ARTIFACTS}}
+    {{TIMELINE}}
+    {{FINAL_DECISION}}
+    <footer class="page-footer">
+      PragatiX DevSecOps Dashboard — Generated {{BUILD_DATE}} {{BUILD_TIME}} — Run #{{RUN_NUMBER}}
+    </footer>
+  </main>
+</div>
+<!-- Inline dashboard.js at generation time -->
+<script>{{DASHBOARD_JS}}</script>
+{{CHART_SCRIPTS}}
+</body>
+</html>

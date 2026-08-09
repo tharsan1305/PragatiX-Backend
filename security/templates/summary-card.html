@@ -1,0 +1,12 @@
+<!-- summary-card.html — Reusable summary card component template -->
+<!-- Variables: {{TITLE}}, {{VALUE}}, {{SUBTITLE}}, {{CARD_CLASS}}, {{ICON}} -->
+<div class="sev-card {{CARD_CLASS}}">
+  <div class="sev-num">{{VALUE}}</div>
+  <div class="sev-label">
+    <i class="fa {{ICON}}"></i>
+    {{TITLE}}
+  </div>
+  {{#if SUBTITLE}}
+  <div class="sev-sub">{{SUBTITLE}}</div>
+  {{/if}}
+</div>

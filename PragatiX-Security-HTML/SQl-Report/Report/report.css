@@ -1,0 +1,260 @@
+/* SQL Security Scanner Report Styles - Dark Theme */
+:root {
+    --bs-body-bg: #0d1117;
+    --bs-body-color: #c9d1d9;
+    --sidebar-width: 220px;
+    --card-bg: #161b22;
+    --card-border: #30363d;
+    --accent: #58a6ff;
+    --danger: #f85149;
+    --warning: #d29922;
+    --success: #3fb950;
+}
+
+body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding-top: 60px;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    background-color: #161b22 !important;
+    width: 220px;
+    overflow-y: auto;
+}
+
+.sidebar .nav-link {
+    color: #8b949e;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    margin: 2px 8px;
+    transition: all 0.2s;
+}
+
+.sidebar .nav-link:hover {
+    color: var(--accent);
+    background-color: #21262d;
+}
+
+.sidebar .nav-link.active {
+    color: var(--accent);
+    background-color: rgba(88, 166, 255, 0.1);
+}
+
+main {
+    margin-left: 220px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+@media (max-width: 768px) {
+    .sidebar { display: none; }
+    main { margin-left: 0; }
+}
+
+/* Stat Cards */
+.stat-card {
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.stat-card .card-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+}
+
+.stat-card .card-text {
+    font-weight: 700;
+    font-size: 2rem;
+}
+
+.bg-orange { background-color: #f0883e !important; }
+.bg-cyan { background-color: #39c5cf !important; }
+
+/* Score Circles */
+.score-circle {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+
+.score-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.score-grade {
+    font-size: 1.2rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.score-label {
+    font-weight: 600;
+    color: #8b949e;
+}
+
+/* Cards */
+.card {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+}
+
+.chart-card, .object-card {
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+}
+
+.chart-card .card-header, .object-card .card-header {
+    background-color: #21262d;
+    border-bottom: 1px solid var(--card-border);
+    border-radius: 10px 10px 0 0;
+}
+
+/* Tables */
+.table-dark {
+    --bs-table-bg: #161b22;
+    --bs-table-border-color: #30363d;
+}
+
+.findings-table thead th {
+    background-color: #21262d;
+    color: var(--accent);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 60px;
+    z-index: 10;
+}
+
+.findings-table td {
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    background-color: #0d1117;
+    color: #c9d1d9;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+}
+
+/* SQL Highlighting */
+.sql-block {
+    background-color: #0d1117;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.sql-block pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.sql-kw { color: #ff7b72; font-weight: 600; }
+.sql-str { color: #a5d6ff; }
+.sql-num { color: #79c0ff; }
+.sql-com { color: #8b949e; font-style: italic; }
+
+/* Finding Detail */
+.finding-detail {
+    background-color: #0d1117 !important;
+}
+
+.finding-detail td {
+    background-color: #0d1117;
+    border-top: none !important;
+}
+
+.expander-cell {
+    width: 60px;
+}
+
+/* Object Cards */
+.object-card .card-body {
+    font-size: 0.85rem;
+}
+
+.object-card .progress {
+    background-color: #21262d;
+}
+
+.object-detail {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--card-border);
+}
+
+/* Recommendation Cards */
+.recommendation-card {
+    border-width: 2px;
+}
+
+.recommendation-card .card-header {
+    color: #fff;
+    border-bottom: none;
+}
+
+/* Sections */
+.section {
+    border-bottom: 1px solid var(--card-border);
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.section h2 {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+/* Badge */
+.badge.bg-light {
+    color: #0d1117;
+}

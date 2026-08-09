@@ -1,0 +1,391 @@
+# Backend security pipeline — scans for secrets, SAST findings, dependency CVEs, and generates the HTML dashboard.
+name: Backend Security
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+  schedule:
+    # nightly scan at 2 AM UTC
+    - cron: "0 2 * * *"
+
+# pipeline knobs — change defaults here if needed
+env:
+  JAVA_VERSION: "21"
+  JAVA_DISTRIBUTION: "temurin"
+  MAVEN_OPTS: "-Xmx2048m"
+
+  # SonarQube runs locally right now (127.0.0.1:9000), which GitHub runners can't reach.
+  # Leave false until SonarCloud or a public URL is set up.
+  SONAR_ENABLED: "false"
+
+  COVERAGE_THRESHOLD: "40"
+
+  # report-only mode keeps the pipeline green while showing real security findings on the dashboard.
+  # Note: The gate currently reports FAIL due to open findings — that's intentional so we can track fixes.
+  GATE_MODE: "report-only"
+
+  REPORT_BASE: "security/generated"
+  REPORTS_DIR: "security/reports"
+  SCRIPTS_DIR: "scripts"
+
+concurrency:
+  group: "security-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # need full commit history to catch secrets in earlier commits
+      - name: Checkout code (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        continue-on-error: true
+
+      - name: Save Gitleaks report
+        if: always()
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/gitleaks
+          cp gitleaks-report.json ${{ env.REPORT_BASE }}/gitleaks/ 2>/dev/null || \
+            echo '{"findings":[]}' > ${{ env.REPORT_BASE }}/gitleaks/gitleaks-report.json
+
+      - name: Upload Gitleaks report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "gitleaks-report-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}/gitleaks/"
+          retention-days: 90
+
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: returntocorp/semgrep:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Semgrep security rules
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/semgrep
+          semgrep \
+            --config p/java \
+            --config p/owasp-top-ten \
+            --config p/secrets \
+            --sarif \
+            --output ${{ env.REPORT_BASE }}/semgrep/semgrep.sarif \
+            --json \
+            --output ${{ env.REPORT_BASE }}/semgrep/semgrep.json \
+            --no-error \
+            --exclude .git \
+            --exclude target \
+            . || true
+
+      - name: Upload Semgrep SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ env.REPORT_BASE }}/semgrep/semgrep.sarif
+          category: semgrep
+
+      - name: Upload Semgrep report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "semgrep-report-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}/semgrep/"
+          retention-days: 30
+
+  codeql:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          queries: security-extended,security-and-quality
+
+      - name: Compile project for CodeQL
+        run: mvn --batch-mode compile -DskipTests
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
+          output: "${{ env.REPORT_BASE }}/codeql"
+
+      - name: Upload CodeQL report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "codeql-report-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}/codeql/"
+          retention-days: 30
+
+  sonarqube:
+    name: Code Quality (SonarQube)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check SonarQube status
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/sonar
+          if [ "${{ env.SONAR_ENABLED }}" = "true" ]; then
+            echo "SonarQube enabled — running analysis..."
+          else
+            echo "SONAR_ENABLED=false — skipping SonarQube step."
+            echo '{"status":"SKIPPED","reason":"SONAR_ENABLED=false"}' \
+              > ${{ env.REPORT_BASE }}/sonar/sonar-status.json
+          fi
+
+      - name: Setup Java 21
+        if: ${{ env.SONAR_ENABLED == 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      - name: Run SonarQube scanner
+        if: ${{ env.SONAR_ENABLED == 'true' }}
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          mvn --batch-mode sonar:sonar \
+            -Dsonar.projectKey=pragatix-backend \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} || true
+
+      - name: Upload SonarQube status artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "sonar-report-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}/sonar/"
+          retention-days: 30
+
+  dependency-check:
+    name: Dependency Scan (OWASP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      - name: Run OWASP Dependency-Check
+        continue-on-error: true
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/owasp-depcheck
+          mvn --batch-mode org.owasp:dependency-check-maven:check \
+            -Dformat=JSON \
+            -DoutputDirectory=${{ env.REPORT_BASE }}/owasp-depcheck \
+            -DautoUpdate=true || true
+
+      - name: Upload Dependency-Check artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "owasp-depcheck-report-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}/owasp-depcheck/"
+          retention-days: 30
+
+  trivy:
+    name: Filesystem & Dependency Scan (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy scan (SARIF)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "${{ env.REPORT_BASE }}/trivy/trivy.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM,LOW"
+          exit-code: "0"
+
+      - name: Run Trivy scan (JSON)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "json"
+          output: "${{ env.REPORT_BASE }}/trivy/trivy.json"
+          severity: "CRITICAL,HIGH,MEDIUM,LOW"
+          exit-code: "0"
+
+      - name: Upload Trivy SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ env.REPORT_BASE }}/trivy/trivy.sarif
+          category: trivy
+
+      - name: Upload Trivy report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "trivy-report-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}/trivy/"
+          retention-days: 30
+
+  sbom:
+    name: SBOM Generation (Syft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: "."
+          format: cyclonedx-json
+          output-file: "${{ env.REPORT_BASE }}/sbom/sbom-cyclonedx.json"
+          artifact-name: "sbom-cyclonedx-${{ github.run_number }}"
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: "."
+          format: spdx-json
+          output-file: "${{ env.REPORT_BASE }}/sbom/sbom-spdx.json"
+          artifact-name: "sbom-spdx-${{ github.run_number }}"
+
+  security-report-and-gate:
+    name: Security Report & Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - secret-scan
+      - semgrep
+      - codeql
+      - sonarqube
+      - dependency-check
+      - trivy
+      - sbom
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download tool reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-report-${{ github.run_number }}"
+          merge-multiple: true
+          path: "${{ env.REPORT_BASE }}"
+
+      - name: Merge all tool reports
+        run: |
+          python ${{ env.SCRIPTS_DIR }}/merge-reports.py \
+            --reports-dir ${{ env.REPORT_BASE }} \
+            --output ${{ env.REPORTS_DIR }}/merged-findings.json \
+            --sonar-enabled ${{ env.SONAR_ENABLED }}
+
+      - name: Generate HTML dashboard
+        run: |
+          chmod +x ${{ env.SCRIPTS_DIR }}/generate-security-report.sh
+          ${{ env.SCRIPTS_DIR }}/generate-security-report.sh
+        env:
+          REPORT_BASE: ${{ env.REPORT_BASE }}
+          REPORTS_DIR: ${{ env.REPORTS_DIR }}
+          SONAR_ENABLED: ${{ env.SONAR_ENABLED }}
+          GATE_MODE: ${{ env.GATE_MODE }}
+          COVERAGE_THRESHOLD: ${{ env.COVERAGE_THRESHOLD }}
+          GIT_SHA: ${{ github.sha }}
+          GIT_BRANCH: ${{ github.ref_name }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
+          TRIGGERED_BY: ${{ github.actor }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+
+      - name: Evaluate Security Gate
+        run: |
+          chmod +x ${{ env.SCRIPTS_DIR }}/security-gate.sh
+          ${{ env.SCRIPTS_DIR }}/security-gate.sh
+        env:
+          REPORTS_DIR: ${{ env.REPORTS_DIR }}
+          REPORT_BASE: ${{ env.REPORT_BASE }}
+          SONAR_ENABLED: ${{ env.SONAR_ENABLED }}
+          GATE_MODE: ${{ env.GATE_MODE }}
+          COVERAGE_THRESHOLD: ${{ env.COVERAGE_THRESHOLD }}
+
+      - name: Upload final HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "FINAL-security-report-${{ github.run_number }}"
+          path: |
+            ${{ env.REPORTS_DIR }}/final-security-report.html
+            ${{ env.REPORTS_DIR }}/merged-findings.json
+          retention-days: 90
+
+      - name: Upload report bundle
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "all-security-reports-${{ github.run_number }}"
+          path: "${{ env.REPORT_BASE }}"
+          retention-days: 90
+
+      - name: Write step summary
+        if: always()
+        run: cat ${{ env.REPORTS_DIR }}/gate-summary.md >> $GITHUB_STEP_SUMMARY || true

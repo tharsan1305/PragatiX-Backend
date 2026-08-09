@@ -1,0 +1,104 @@
+# Backend deployment workflow — packages the JAR and builds/tests the application.
+name: PragatiX Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and Test Spring Boot Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # MySQL container for integration test suite
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: stharsan1305
+          MYSQL_DATABASE: spdms_lab
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # print Java/Maven environment info
+      - name: Show Java and Maven versions
+        run: |
+          java -version
+          mvn -version
+
+      # make sure pom.xml is present before building
+      - name: Validate Maven project
+        run: |
+          test -f pom.xml
+
+      - name: Download Maven dependencies
+        run: mvn dependency:resolve
+
+      - name: Compile project
+        run: mvn clean compile -B
+
+      - name: Run unit tests
+        run: mvn test -B
+
+      # package Spring Boot executable JAR
+      - name: Package application
+        run: mvn package -DskipTests -B
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-reports
+          path: target/surefire-reports
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload Spring Boot JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: springboot-jar
+          path: target/*.jar
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Write build summary
+        if: always()
+        run: |
+          echo "# PragatiX Backend CI" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Triggered By: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Backend CI completed."

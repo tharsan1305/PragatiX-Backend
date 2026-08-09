@@ -1,0 +1,13 @@
+<!-- finding-table.html — Reusable findings table row template -->
+<!-- Used by generate-security-report.sh to render each finding row -->
+<!-- Variables: {{SEVERITY}}, {{SEVERITY_CLASS}}, {{TOOL}}, {{TITLE}},
+     {{FILE}}, {{LINE}}, {{CWE}}, {{OWASP}}, {{DESCRIPTION}} -->
+<tr>
+  <td><span class="badge badge-{{SEVERITY_CLASS}}">{{SEVERITY_ICON}} {{SEVERITY}}</span></td>
+  <td>{{TOOL}}</td>
+  <td title="{{DESCRIPTION}}">{{TITLE}}</td>
+  <td class="col-file">{{FILE}}</td>
+  <td>{{LINE}}</td>
+  <td>{{CWE}}</td>
+  <td>{{OWASP}}</td>
+</tr>
