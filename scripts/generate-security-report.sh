@@ -36,6 +36,7 @@ RUN_NUMBER="${RUN_NUMBER:-0}"
 REPO="${REPO:-unknown/unknown}"
 TRIGGERED_BY="${TRIGGERED_BY:-unknown}"
 WORKFLOW_NAME="${WORKFLOW_NAME:-Security Pipeline}"
+GATE_RESULT_LOWER="$(echo "${GATE_RESULT:-FAIL}" | tr '[:upper:]' '[:lower:]')"
 BUILD_DATE="$(date -u '+%Y-%m-%d')"
 BUILD_TIME="$(date -u '+%H:%M:%S UTC')"
 
@@ -508,7 +509,7 @@ ${FINDINGS_ROWS}
   </section>
 
   <!-- ── FINAL DECISION ─────────────────────────────────────────────────── -->
-  <section class="section final-decision gate-box-$(echo ${GATE_RESULT} | tr '[:upper:]' '[:lower:]')">
+  <section class="section final-decision gate-box-${GATE_RESULT_LOWER}">
     <h2>Final Decision</h2>
     <div class="final-icon">$([ "$GATE_RESULT" = "PASS" ] && echo "✅" || echo "❌")</div>
     <div class="final-text">SECURITY GATE: ${GATE_RESULT}</div>
