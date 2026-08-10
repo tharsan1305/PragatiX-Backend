@@ -1,0 +1,10 @@
+# Gitleaks configuration for PragatiX Backend
+title = "Gitleaks Config"
+
+[allowlist]
+description = "Ignore generated security reports and HTML dashboard history"
+paths = [
+    '''PragatiX-Security-HTML/''',
+    '''security/generated/''',
+    '''security/reports/'''
+]

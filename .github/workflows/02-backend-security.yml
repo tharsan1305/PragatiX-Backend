@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     container:
-      image: returntocorp/semgrep:latest
+      image: semgrep/semgrep:latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -103,7 +103,7 @@ jobs:
             . || true
 
       - name: Upload Semgrep SARIF to Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: ${{ env.REPORT_BASE }}/semgrep/semgrep.sarif
@@ -128,14 +128,14 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: java
           queries: security-extended,security-and-quality
@@ -144,7 +144,7 @@ jobs:
         run: mvn --batch-mode compile -DskipTests
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java"
           output: "${{ env.REPORT_BASE }}/codeql"
@@ -244,6 +244,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create output directory
+        run: mkdir -p ${{ env.REPORT_BASE }}/trivy
+
       - name: Run Trivy scan (SARIF)
         uses: aquasecurity/trivy-action@master
         with:
@@ -265,7 +268,7 @@ jobs:
           exit-code: "0"
 
       - name: Upload Trivy SARIF to Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: ${{ env.REPORT_BASE }}/trivy/trivy.sarif
@@ -286,6 +289,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Create output directory
+        run: mkdir -p ${{ env.REPORT_BASE }}/sbom
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@v0
@@ -327,6 +333,7 @@ jobs:
 
       - name: Download tool reports
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           pattern: "*-report-${{ github.run_number }}"
           merge-multiple: true
