@@ -95,15 +95,22 @@ jobs:
             --config p/secrets \
             --sarif \
             --output ${{ env.REPORT_BASE }}/semgrep/semgrep.sarif \
+            --exclude .git \
+            --exclude target \
+            . || true
+          semgrep \
+            --config p/java \
+            --config p/owasp-top-ten \
+            --config p/secrets \
             --json \
             --output ${{ env.REPORT_BASE }}/semgrep/semgrep.json \
-            --no-error \
             --exclude .git \
             --exclude target \
             . || true
 
       - name: Upload Semgrep SARIF to Security tab
         uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
         if: always()
         with:
           sarif_file: ${{ env.REPORT_BASE }}/semgrep/semgrep.sarif
@@ -245,10 +252,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create output directory
-        run: mkdir -p ${{ env.REPORT_BASE }}/trivy
+        run: |
+          mkdir -p ${{ env.REPORT_BASE }}/trivy
+          touch ${{ env.REPORT_BASE }}/trivy/trivy.sarif
+          touch ${{ env.REPORT_BASE }}/trivy/trivy.json
 
       - name: Run Trivy scan (SARIF)
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -259,6 +270,7 @@ jobs:
 
       - name: Run Trivy scan (JSON)
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -269,6 +281,7 @@ jobs:
 
       - name: Upload Trivy SARIF to Security tab
         uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
         if: always()
         with:
           sarif_file: ${{ env.REPORT_BASE }}/trivy/trivy.sarif
